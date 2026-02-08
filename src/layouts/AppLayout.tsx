@@ -31,8 +31,8 @@ const AppLayout = () => {
       <div className="flex">
         <Sidebar />
         <div className="flex min-h-screen flex-1 flex-col">
-          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white/90 px-6 py-5 backdrop-blur">
-            <h1 className="text-xl font-semibold text-slate-900">Good morning, Dr. Martinez</h1>
+          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-4">
+            <h1 className="text-lg font-semibold text-slate-900">Good morning, Dr. Martinez</h1>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm">
                 <CalendarDays className="h-4 w-4 text-slate-400" />
@@ -44,7 +44,7 @@ const AppLayout = () => {
                 type="button"
                 aria-haspopup="menu"
                 aria-label="Open profile menu"
-                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm transition hover:border-primary/40 hover:shadow"
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1 shadow-sm transition hover:border-primary"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                   DM
