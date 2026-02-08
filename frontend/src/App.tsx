@@ -4,6 +4,7 @@ import AppointmentsPage from './pages/AppointmentsPage'
 import CalendarConnectPage from './pages/CalendarConnectPage'
 import CallHistoryPage from './pages/CallHistoryPage'
 import DashboardPage from './pages/DashboardPage'
+import SignupPage from './pages/SignupPage'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -15,6 +16,7 @@ const App = () => {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route path="/connect-calendar" element={<CalendarConnectPage />} />
       <Route path="/app" element={<AppLayout />}>
         <Route index element={<DashboardPage />} />

@@ -1,7 +1,8 @@
 # MomMode Doctor Dashboard
 
 MomMode is an AI calling system for small doctor clinics. This repository contains a doctor-only
-dashboard built with React 18, Vite, TypeScript, Tailwind CSS, and React Router.
+dashboard built with React 18, Vite, TypeScript, Tailwind CSS, and React Router. The frontend app
+lives in the `frontend/` directory.
 
 ## Features
 
@@ -22,6 +23,7 @@ dashboard built with React 18, Vite, TypeScript, Tailwind CSS, and React Router.
 ## Getting Started
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
@@ -29,11 +31,13 @@ npm run dev
 Build for production:
 
 ```bash
+cd frontend
 npm run build
 ```
 
 Preview the production build:
 
 ```bash
+cd frontend
 npm run preview
 ```
