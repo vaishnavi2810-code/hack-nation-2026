@@ -3,6 +3,12 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 
 const AppLayout = () => {
+  const handleSignOut = () => {
+    const message = 'Logging out via POST /auth/logout'
+    console.log(message)
+    window.alert(message)
+  }
+
   return (
     <div className="min-h-screen bg-background text-slate-900">
       <div className="flex">
@@ -22,7 +28,11 @@ const AppLayout = () => {
                   className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-primary focus:bg-white"
                 />
               </div>
-              <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-primary hover:text-primary">
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-primary hover:text-primary"
+              >
                 <LogOut className="h-4 w-4" />
                 Sign out
               </button>

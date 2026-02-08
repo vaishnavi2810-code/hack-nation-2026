@@ -36,6 +36,11 @@ const calls = [
   },
 ]
 
+const notifyAction = (message: string) => {
+  console.log(message)
+  window.alert(message)
+}
+
 const CallHistoryPage = () => {
   return (
     <div className="space-y-6">
@@ -46,7 +51,11 @@ const CallHistoryPage = () => {
             Review call outcomes and schedule manual follow-ups for your clinic.
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+        <button
+          type="button"
+          onClick={() => notifyAction('Schedule call via POST /calls/manual')}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+        >
           <Plus className="h-4 w-4" />
           Schedule manual call
         </button>
@@ -89,7 +98,11 @@ const CallHistoryPage = () => {
                       : 'info'
                 }
               />
-              <button className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+              <button
+                type="button"
+                onClick={() => notifyAction(`Fetch call via GET /calls/${call.id}`)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+              >
                 <Eye className="h-3.5 w-3.5" />
                 View details
               </button>

@@ -1,6 +1,11 @@
 import { Bell, Building2, CalendarDays } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+const notifyAction = (message: string) => {
+  console.log(message)
+  window.alert(message)
+}
+
 const SettingsPage = () => {
   return (
     <div className="space-y-6">
@@ -99,6 +104,7 @@ const SettingsPage = () => {
         <div className="flex justify-end">
           <button
             type="button"
+            onClick={() => notifyAction('Update settings via PUT /settings')}
             className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             Save settings
