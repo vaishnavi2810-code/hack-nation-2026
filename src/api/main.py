@@ -53,6 +53,9 @@ DEFAULT_DOCTOR_PHONE = ""
 ERROR_CALENDAR_NOT_CONNECTED = "Calendar is not connected."
 ERROR_CALENDAR_DATE_INVALID = "Invalid date. Use YYYY-MM-DD or 'today'."
 ERROR_CALENDAR_FETCH_FAILED = "Failed to fetch calendar appointments."
+ERROR_APPOINTMENT_NOT_FOUND = "Appointment not found."
+ERROR_APPOINTMENT_NO_SHOW_FAILED = "Failed to mark appointment as no-show."
+NO_SHOW_SUCCESS_MESSAGE = "Appointment marked as no-show."
 CALENDAR_TIMEZONE_FALLBACK = "UTC"
 CORS_ALLOW_METHODS = ["*"]
 CORS_ALLOW_HEADERS = ["*"]
@@ -72,6 +75,7 @@ APPOINTMENT_SUMMARY_PREFIX = "Appointment:"
 APPOINTMENT_SUMMARY_FALLBACK = "Appointment"
 APPOINTMENT_STATUS_SCHEDULED = "scheduled"
 APPOINTMENT_STATUS_CANCELLED = "cancelled"
+APPOINTMENT_STATUS_NO_SHOW = "no_show"
 APPOINTMENT_TYPE_FALLBACK = "General"
 DESCRIPTION_FIELD_SEPARATOR = ": "
 DESCRIPTION_FIELD_STATUS = "status"
@@ -1032,6 +1036,62 @@ async def confirm_appointment(appointment_id: str, request: models.AppointmentCo
     TODO: Update Google Calendar event
     """
     return {"success": True, "message": "Appointment confirmed"}
+
+
+@app.post("/api/appointments/{appointment_id}/no-show")
+async def mark_appointment_no_show(
+    appointment_id: str,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Mark an appointment as no-show.
+
+    Updates Google Calendar event and local appointment record when available.
+    """
+    try:
+        appointment = db.query(database.Appointment).filter(
+            database.Appointment.doctor_id == current_user,
+            database.Appointment.id == appointment_id
+        ).first()
+
+        if not appointment:
+            appointment = db.query(database.Appointment).filter(
+                database.Appointment.doctor_id == current_user,
+                database.Appointment.calendar_event_id == appointment_id
+            ).first()
+
+        calendar_event_id = appointment.calendar_event_id if appointment else appointment_id
+
+        result = calendar_service.mark_no_show(calendar_event_id)
+        if not result.get("success"):
+            fallback_error = ERROR_APPOINTMENT_NOT_FOUND if not appointment else ERROR_APPOINTMENT_NO_SHOW_FAILED
+            error_status = status.HTTP_404_NOT_FOUND if not appointment else status.HTTP_500_INTERNAL_SERVER_ERROR
+            raise HTTPException(
+                status_code=error_status,
+                detail=result.get("error", fallback_error)
+            )
+
+        if appointment:
+            appointment.status = APPOINTMENT_STATUS_NO_SHOW
+            appointment.updated_at = datetime.utcnow()
+            db.commit()
+
+        return {
+            "success": True,
+            "message": NO_SHOW_SUCCESS_MESSAGE,
+            "appointment_id": appointment.id if appointment else appointment_id,
+            "status": APPOINTMENT_STATUS_NO_SHOW
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{ERROR_APPOINTMENT_NO_SHOW_FAILED} {str(e)}"
+        )
 
 
 # ============================================================================

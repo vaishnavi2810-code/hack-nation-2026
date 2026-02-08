@@ -83,6 +83,7 @@ export const API_PATHS = {
   APPOINTMENTS_UPCOMING: '/api/appointments/upcoming',
   APPOINTMENT_BY_ID: (appointmentId: string) => `/api/appointments/${appointmentId}`,
   APPOINTMENT_CONFIRM: (appointmentId: string) => `/api/appointments/${appointmentId}/confirm`,
+  APPOINTMENT_NO_SHOW: (appointmentId: string) => `/api/appointments/${appointmentId}/no-show`,
   CALLS: '/api/calls',
   CALLS_SCHEDULED: '/api/calls/scheduled',
   CALL_BY_ID: (callId: string) => `/api/calls/${callId}`,
