@@ -3,6 +3,8 @@ Database models and session management.
 """
 
 from src.database.models import (
+    engine,
+    SessionLocal,
     Base,
     User,
     Patient,
@@ -13,7 +15,13 @@ from src.database.models import (
     get_db,
 )
 
+# Type alias for FastAPI dependencies
+Session = SessionLocal
+
 __all__ = [
+    "engine",
+    "SessionLocal",
+    "Session",
     "Base",
     "User",
     "Patient",
