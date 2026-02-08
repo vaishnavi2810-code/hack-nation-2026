@@ -165,6 +165,7 @@ APP_VERSION = get_optional_var("APP_VERSION", "0.1.0")
 DEBUG = get_optional_var("DEBUG", "false").lower() == "true"
 LOG_LEVEL = get_optional_var("LOG_LEVEL", "INFO")
 API_BASE_URL = get_optional_var("API_BASE_URL", "http://localhost:8000")
+FRONTEND_OAUTH_REDIRECT_URL = get_optional_var("FRONTEND_OAUTH_REDIRECT_URL", "")
 
 # ============================================================================
 # CORS CONFIG

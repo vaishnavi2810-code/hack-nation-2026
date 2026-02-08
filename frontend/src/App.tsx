@@ -9,6 +9,7 @@ import SignupPage from './pages/SignupPage'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
+import OAuthCallbackPage from './pages/OAuthCallbackPage'
 import PatientsPage from './pages/PatientsPage'
 import SettingsPage from './pages/SettingsPage'
 
@@ -18,6 +19,7 @@ const App = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
       <Route path="/connect-calendar" element={<CalendarConnectPage />} />
       <Route path="/app" element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
