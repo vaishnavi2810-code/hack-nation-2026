@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './layouts/AppLayout'
+import AppointmentsPage from './pages/AppointmentsPage'
 import AppointmentSummaryPage from './pages/AppointmentSummaryPage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -9,6 +10,7 @@ const ROUTE_ROOT = '/'
 const ROUTE_LOGIN = '/login'
 const ROUTE_APP = '/app'
 const ROUTE_OAUTH_CALLBACK = '/oauth/callback'
+const ROUTE_APPOINTMENTS = 'appointments'
 const ROUTE_FALLBACK = '*'
 
 const App = () => {
@@ -19,6 +21,7 @@ const App = () => {
       <Route path={ROUTE_OAUTH_CALLBACK} element={<OAuthCallbackPage />} />
       <Route path={ROUTE_APP} element={<AppLayout />}>
         <Route index element={<AppointmentSummaryPage />} />
+        <Route path={ROUTE_APPOINTMENTS} element={<AppointmentsPage />} />
       </Route>
       <Route path={ROUTE_FALLBACK} element={<NotFoundPage />} />
     </Routes>

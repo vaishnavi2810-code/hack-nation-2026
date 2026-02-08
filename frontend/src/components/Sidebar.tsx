@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { CalendarDays, HeartPulse } from 'lucide-react'
+import { CalendarCheck, CalendarDays, HeartPulse } from 'lucide-react'
 import { apiRequest, API_PATHS, ERRORS, HTTP } from '../lib/api'
 
 type DoctorProfile = {
@@ -14,15 +14,20 @@ type DoctorProfile = {
 }
 
 const ROUTE_APP = '/app'
+const ROUTE_APPOINTMENTS = '/app/appointments'
 const BRAND_NAME = 'MomMode'
 const BRAND_SUBTITLE = 'Doctor Portal'
 const NAV_LABEL_SUMMARY = 'Appointment summary'
+const NAV_LABEL_APPOINTMENTS = 'Appointments'
 const FOOTER_TITLE = 'Doctor workspace'
 const FOOTER_SUBTITLE = 'Login to review appointment summaries.'
 const FOOTER_LOGGED_IN_SUBTITLE = 'Signed in'
 const EMPTY_STRING = ''
 
-const navItems = [{ label: NAV_LABEL_SUMMARY, to: ROUTE_APP, icon: CalendarDays }]
+const navItems = [
+  { label: NAV_LABEL_SUMMARY, to: ROUTE_APP, icon: CalendarDays },
+  { label: NAV_LABEL_APPOINTMENTS, to: ROUTE_APPOINTMENTS, icon: CalendarCheck },
+]
 
 const Sidebar = () => {
   const [doctorEmail, setDoctorEmail] = useState<string | null>(null)
