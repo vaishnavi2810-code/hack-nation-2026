@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Depends, status, Request, Query
 from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from urllib.parse import urlencode
 from starlette.authentication import AuthCredentials, SimpleUser
@@ -37,6 +38,9 @@ OAUTH_REDIRECT_PARAM_USER_ID = "user_id"
 OAUTH_REDIRECT_QUERY_SEPARATOR = "?"
 OAUTH_REDIRECT_APPEND_SEPARATOR = "&"
 OAUTH_TOKEN_TYPE_BEARER = "bearer"
+CORS_ALLOW_METHODS = ["*"]
+CORS_ALLOW_HEADERS = ["*"]
+CORS_ALLOW_CREDENTIALS = True
 
 
 def build_oauth_redirect_url(base_url: str, payload: dict) -> str:
@@ -73,6 +77,14 @@ app = FastAPI(
     title=config.APP_NAME,
     version=config.APP_VERSION,
     debug=config.DEBUG
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.CORS_ALLOWED_ORIGINS,
+    allow_credentials=CORS_ALLOW_CREDENTIALS,
+    allow_methods=CORS_ALLOW_METHODS,
+    allow_headers=CORS_ALLOW_HEADERS,
 )
 
 # Initialize Twilio wrapper
