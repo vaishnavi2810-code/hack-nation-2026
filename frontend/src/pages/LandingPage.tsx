@@ -30,12 +30,12 @@ const features = [
   },
   {
     title: 'Doctor-grade oversight',
-    description: 'Review every call summary, patient note, and follow-up task.',
+    description: 'Review call summaries, appointments, and patient records in one place.',
     icon: ShieldCheck,
   },
   {
     title: 'Clinic-ready patient context',
-    description: 'Surface visit history, prep notes, and care team updates instantly.',
+    description: 'Surface visit history, contact details, and upcoming appointments instantly.',
     icon: UsersRound,
   },
 ]
@@ -61,10 +61,10 @@ const LandingPage = () => {
             Doctor Login
           </Link>
           <Link
-            to="/onboarding"
+            to="/signup"
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
-            Get Started
+            Create account
           </Link>
         </div>
       </header>
@@ -86,10 +86,10 @@ const LandingPage = () => {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
-                to="/onboarding"
+                to="/signup"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
-                Start onboarding
+                Create account
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
@@ -126,7 +126,7 @@ const LandingPage = () => {
                 {[
                   '6 appointment confirmations sent',
                   '4 reschedules routed to staff',
-                  '2 follow-up tasks flagged',
+                  '2 follow-up calls scheduled',
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-success" />
@@ -148,7 +148,7 @@ const LandingPage = () => {
               <div className="mt-4 space-y-3 text-sm text-slate-600">
                 <p>• Real-time call summaries for every appointment request.</p>
                 <p>• Automatic escalation to staff for exceptions.</p>
-                <p>• HIPAA-conscious workflows and audit-ready notes.</p>
+                <p>• HIPAA-conscious workflows with secure access controls.</p>
               </div>
             </div>
           </div>
@@ -183,14 +183,14 @@ const LandingPage = () => {
               Ready to bring AI call coverage to your clinic?
             </h2>
             <p className="mt-3 text-sm text-slate-600">
-              Start with secure doctor onboarding and connect Google Calendar in minutes.
+              Create a doctor account and connect Google Calendar in minutes.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Link
                 to="/login"
                 className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
-                Request a demo
+                Doctor login
               </Link>
               <Link
                 to="/connect-calendar"

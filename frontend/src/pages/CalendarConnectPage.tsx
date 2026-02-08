@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { CalendarCheck, CheckCircle2, HeartPulse, Lock, ShieldCheck } from 'lucide-react'
+import { API_BASE_URL } from '../lib/api'
 
 const steps = [
-  'Connect your clinic Google Calendar to sync availability.',
-  'Confirm time zone and appointment blocks.',
-  'Review the AI calling coverage schedule.',
+  'Authorize access to your clinic Google Calendar.',
+  'Check connection status and disconnect anytime.',
+  'Use availability lookups when booking appointments.',
 ]
 
 const CalendarConnectPage = () => {
@@ -30,7 +31,7 @@ const CalendarConnectPage = () => {
               <div>
                 <h1 className="text-2xl font-semibold text-slate-900">Connect Google Calendar</h1>
                 <p className="text-sm text-slate-600">
-                  Link your clinic calendar to activate MomMode calling workflows.
+                  Link your clinic calendar to sync availability and appointments.
                 </p>
               </div>
             </div>
@@ -44,12 +45,12 @@ const CalendarConnectPage = () => {
               ))}
             </div>
 
-            <Link
-              to="/app"
+            <a
+              href={`${API_BASE_URL}/calendar/auth-url`}
               className="mt-8 block w-full rounded-full bg-primary px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
             >
-              Connect Calendar
-            </Link>
+              Authorize Calendar
+            </a>
             <p className="mt-3 text-xs text-slate-500">
               Admin-only connection. Patients never access this portal.
             </p>
