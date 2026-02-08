@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from colorama import Fore, init
 
 import config
@@ -71,7 +71,7 @@ print(f"{Fore.GREEN}✅ {config.APP_NAME} API initialized")
 # ============================================================================
 
 def get_current_user(
-    credentials: HTTPAuthCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: database.Session = Depends(database.get_db)
 ) -> str:
     """
