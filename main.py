@@ -945,7 +945,7 @@ async def http_exception_handler(request, exc):
         content={
             "success": False,
             "error": exc.detail,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.utcnow().isoformat()
         }
     )
 
@@ -959,7 +959,7 @@ async def general_exception_handler(request, exc):
         content={
             "success": False,
             "error": "Internal server error",
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.utcnow().isoformat()
         }
     )
 
