@@ -37,9 +37,14 @@ TOKEN_FIELD_SCOPES = "scopes"
 
 
 def resolve_oauth_redirect_uri() -> str:
-    """Resolve OAuth redirect URI for Google auth flow."""
-    if config.FRONTEND_OAUTH_REDIRECT_URL:
-        return config.FRONTEND_OAUTH_REDIRECT_URL
+    """Resolve OAuth redirect URI for Google auth flow.
+
+    Uses GOOGLE_REDIRECT_URI (same env var that GoogleAuthManager uses
+    to generate the auth URL) so the token-exchange redirect_uri always
+    matches the one sent during authorization.
+    """
+    if config.GOOGLE_REDIRECT_URI:
+        return config.GOOGLE_REDIRECT_URI
     api_base = config.API_BASE_URL.rstrip(OAUTH_URL_TRAILING_SLASH)
     return f"{api_base}{OAUTH_REDIRECT_PATH}"
 
@@ -168,11 +173,6 @@ def get_google_oauth_url() -> tuple[str, str]:
     """
     print(f"{Fore.CYAN}[AUTH SERVICE] get_google_oauth_url() called")
 
-    flow = Flow.from_client_secrets_file(
-        config.GOOGLE_CREDENTIALS_PATH,
-        scopes=OAUTH_SCOPES,
-        redirect_uri=resolve_oauth_redirect_uri()
-    )
     try:
         from google_auth_oauthlib.flow import Flow
 
@@ -184,15 +184,16 @@ def get_google_oauth_url() -> tuple[str, str]:
             print(f"{Fore.RED}[AUTH SERVICE] ❌ Credentials file not found at: {cred_path}")
             raise FileNotFoundError(f"Google credentials file not found at: {cred_path}")
 
+        redirect_uri = resolve_oauth_redirect_uri()
         print(f"{Fore.GREEN}[AUTH SERVICE] ✅ Credentials file exists")
-        print(f"{Fore.CYAN}[AUTH SERVICE] API Base URL: {config.API_BASE_URL}")
+        print(f"{Fore.CYAN}[AUTH SERVICE] Redirect URI: {redirect_uri}")
         print(f"{Fore.CYAN}[AUTH SERVICE] Scopes: {config.GOOGLE_OAUTH_SCOPES}")
 
         print(f"{Fore.CYAN}[AUTH SERVICE] Creating Flow from credentials...")
         flow = Flow.from_client_secrets_file(
             config.GOOGLE_CREDENTIALS_PATH,
             scopes=config.GOOGLE_OAUTH_SCOPES,
-            redirect_uri=f"{config.API_BASE_URL}/api/auth/google/callback"
+            redirect_uri=redirect_uri
         )
 
         print(f"{Fore.GREEN}[AUTH SERVICE] ✅ Flow created successfully")
