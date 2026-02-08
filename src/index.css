@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #2563eb;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-background: #f9fafb;
+  --shadow-soft: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
 @layer base {
   body {
     @apply bg-background text-slate-900 font-sans antialiased;
