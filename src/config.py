@@ -205,6 +205,15 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # ============================================================================
+# OAUTHLIB SETTINGS
+# ============================================================================
+DEFAULT_OAUTHLIB_RELAX_TOKEN_SCOPE = "1"
+OAUTHLIB_RELAX_TOKEN_SCOPE = get_optional_var(
+    "OAUTHLIB_RELAX_TOKEN_SCOPE",
+    DEFAULT_OAUTHLIB_RELAX_TOKEN_SCOPE
+)
+
+# ============================================================================
 # GOOGLE CREDENTIALS
 # ============================================================================
 DEFAULT_GOOGLE_CREDENTIALS_PATH = ""

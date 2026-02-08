@@ -27,6 +27,7 @@ GOOGLE_OAUTH_SCOPE_CALENDAR = "https://www.googleapis.com/auth/calendar"
 GOOGLE_OAUTH_SCOPE_OPENID = "openid"
 GOOGLE_OAUTH_SCOPE_USERINFO_EMAIL = "https://www.googleapis.com/auth/userinfo.email"
 GOOGLE_OAUTH_SCOPE_USERINFO_PROFILE = "https://www.googleapis.com/auth/userinfo.profile"
+OAUTHLIB_RELAX_TOKEN_SCOPE_ENV_VAR = "OAUTHLIB_RELAX_TOKEN_SCOPE"
 GOOGLE_OAUTH_SCOPES = [
     GOOGLE_OAUTH_SCOPE_CALENDAR,
     GOOGLE_OAUTH_SCOPE_OPENID,
@@ -129,6 +130,8 @@ def get_google_oauth_url() -> tuple[str, str]:
     Returns:
         tuple: (authorization_url, state_token)
     """
+    if config.OAUTHLIB_RELAX_TOKEN_SCOPE:
+        os.environ[OAUTHLIB_RELAX_TOKEN_SCOPE_ENV_VAR] = config.OAUTHLIB_RELAX_TOKEN_SCOPE
     from google_auth_oauthlib.flow import Flow
 
     flow = Flow.from_client_secrets_file(
@@ -154,6 +157,8 @@ def exchange_oauth_code_for_token(code: str, state: str) -> Optional[Dict[str, A
         dict: Token data with access_token, refresh_token, etc.
     """
     try:
+        if config.OAUTHLIB_RELAX_TOKEN_SCOPE:
+            os.environ[OAUTHLIB_RELAX_TOKEN_SCOPE_ENV_VAR] = config.OAUTHLIB_RELAX_TOKEN_SCOPE
         from google_auth_oauthlib.flow import Flow
 
         flow = Flow.from_client_secrets_file(
