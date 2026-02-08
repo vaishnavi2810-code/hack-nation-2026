@@ -19,8 +19,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any
 from sqlalchemy.orm import Session
 from src import config
-from src import database
-from src import auth
+from src.database import models as database
+from src.auth import service as auth_service
 import requests
 from colorama import Fore, init
 
@@ -58,7 +58,7 @@ def call_calendar_mcp(
         dict: Result from calendar MCP
     """
     # Get user and their OAuth token
-    oauth_token = auth.get_user_oauth_token(db, user_id)
+    oauth_token = auth_service.get_user_oauth_token(db, user_id)
     if not oauth_token:
         raise CalendarServiceError(
             f"User {user_id} has no valid OAuth token"
@@ -96,6 +96,63 @@ def call_calendar_mcp(
         error_msg = f"Calendar MCP error: {str(e)}"
         print(f"{Fore.RED}❌ {error_msg}")
         raise CalendarServiceError(error_msg)
+
+
+# ============================================================================
+# DUMMY CALENDAR IMPLEMENTATION
+# ============================================================================
+
+def get_dummy_available_slots(date_str: str) -> List[Dict[str, Any]]:
+    """
+    Generate dummy available appointment slots for testing.
+
+    SPECIAL RULES:
+    - Monday 2/9/2026: NO availability (completely booked)
+    - Other weekdays: 3 slots (14:00, 15:00, 16:00)
+    - Weekends: No availability
+
+    Args:
+        date_str: Date in YYYY-MM-DD format
+
+    Returns:
+        list: Available time slots
+    """
+    try:
+        from datetime import datetime
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        day_name = date_obj.strftime("%A")
+
+        # SPECIAL: Monday 2/9/2026 has NO availability
+        if date_str == "2026-02-09":
+            if config.DEBUG:
+                print(f"{Fore.CYAN}[DEBUG] Monday 2/9/2026: NO availability (special dummy calendar rule)")
+            return []
+
+        # Weekends: no availability
+        if day_name in ["Saturday", "Sunday"]:
+            if config.DEBUG:
+                print(f"{Fore.CYAN}[DEBUG] {date_str} ({day_name}): No weekend availability")
+            return []
+
+        # Weekdays: standard slots
+        available_slots = [
+            {"date": date_str, "time": "09:00", "duration_minutes": 30},
+            {"date": date_str, "time": "10:00", "duration_minutes": 30},
+            {"date": date_str, "time": "11:00", "duration_minutes": 30},
+            {"date": date_str, "time": "14:00", "duration_minutes": 30},
+            {"date": date_str, "time": "15:00", "duration_minutes": 30},
+            {"date": date_str, "time": "16:00", "duration_minutes": 30},
+        ]
+
+        if config.DEBUG:
+            print(f"{Fore.CYAN}[DEBUG] {date_str} ({day_name}): {len(available_slots)} available slots")
+
+        return available_slots
+
+    except Exception as e:
+        if config.DEBUG:
+            print(f"{Fore.RED}❌ Error generating dummy slots: {e}")
+        return []
 
 
 # ============================================================================
@@ -158,12 +215,9 @@ def check_availability(
                 "error": "Could not check calendar availability"
             }
 
-        # TODO: Mock available slots - replace with real Calendar MCP call
-        available_slots = [
-            {"time": "14:00", "duration_minutes": 30},
-            {"time": "15:00", "duration_minutes": 30},
-            {"time": "16:00", "duration_minutes": 30}
-        ]
+        # DUMMY CALENDAR IMPLEMENTATION
+        # Returns mock available slots based on date
+        available_slots = get_dummy_available_slots(parsed_date)
 
         return {
             "success": True,
