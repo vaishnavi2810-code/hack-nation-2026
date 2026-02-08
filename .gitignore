@@ -1,7 +1,3 @@
-# ===========================================
-# CallPilot .gitignore
-# ===========================================
-
 # ----- Credentials & Secrets (CRITICAL) -----
 credentials.json
 token.json
@@ -82,6 +78,10 @@ Desktop.ini
 
 # ----- Logs -----
 logs/
+
+# Logs
+logs
+
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -100,3 +100,21 @@ callpilot.db
 .cache/
 
 .idea
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
