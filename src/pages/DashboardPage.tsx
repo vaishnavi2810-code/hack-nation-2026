@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   AlertCircle,
@@ -14,8 +13,8 @@ import StatusBadge from '../components/StatusBadge'
 
 type StatItem = {
   title: string
-  value: ReactNode
-  change?: ReactNode
+  value: string
+  change?: string
   icon: LucideIcon
   accent?: 'primary' | 'success' | 'warning'
 }
@@ -24,22 +23,13 @@ const stats: StatItem[] = [
   {
     title: "Today's Reminder Calls",
     value: '12',
-    change: (
-      <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-        ↑ 8% from yesterday
-      </span>
-    ),
+    change: '↑ 8% from yesterday',
     icon: Phone,
     accent: 'primary',
   },
   {
     title: 'Patients Confirmed',
-    value: (
-      <>
-        <span>10</span>
-        <span className="text-base font-semibold text-slate-400">(83%)</span>
-      </>
-    ),
+    value: '10 (83%)',
     icon: CheckCircle,
     accent: 'success',
   },
@@ -97,8 +87,8 @@ const recentActivity = [
 
 const DashboardPage = () => {
   return (
-    <div className="space-y-7">
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-6">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
           <StatCard
             key={stat.title}
@@ -111,16 +101,15 @@ const DashboardPage = () => {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[2.1fr_1fr] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-slate-900">Reminder Calls Scheduled Today</h2>
           </div>
 
-          <div className="mt-6 overflow-x-auto">
-            <div className="min-w-[640px] overflow-hidden rounded-2xl border border-slate-100">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className="mt-5 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Time</th>
                   <th className="px-4 py-3">Patient</th>
@@ -129,34 +118,31 @@ const DashboardPage = () => {
                   <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {reminderCalls.map((call) => {
-                    const statusMeta = statusConfig[call.status]
-                    return (
-                      <tr key={`${call.time}-${call.patient}`} className="text-slate-600 transition hover:bg-slate-50">
-                        <td className="px-4 py-4 text-sm font-semibold text-slate-900 whitespace-nowrap">
-                          {call.time}
-                        </td>
-                        <td className="px-4 py-4 text-sm font-semibold text-slate-900">{call.patient}</td>
-                        <td className="px-4 py-4 text-sm text-slate-500 whitespace-nowrap">{call.phone}</td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <StatusBadge
-                            label={statusMeta.label}
-                            variant={statusMeta.variant}
-                            icon={statusMeta.icon}
-                          />
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <button className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary">
-                            {call.action}
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+              <tbody className="divide-y divide-slate-100">
+                {reminderCalls.map((call) => {
+                  const statusMeta = statusConfig[call.status]
+                  return (
+                    <tr key={`${call.time}-${call.patient}`} className="text-slate-600">
+                      <td className="px-4 py-4 text-sm font-semibold text-slate-900">{call.time}</td>
+                      <td className="px-4 py-4">{call.patient}</td>
+                      <td className="px-4 py-4">{call.phone}</td>
+                      <td className="px-4 py-4">
+                        <StatusBadge
+                          label={statusMeta.label}
+                          variant={statusMeta.variant}
+                          icon={statusMeta.icon}
+                        />
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <button className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-primary hover:text-primary">
+                          {call.action}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -164,14 +150,12 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Recent activity</h2>
           </div>
-          <ul className="relative mt-6 space-y-5 pl-8 before:absolute before:left-3 before:top-2 before:h-[calc(100%-8px)] before:w-px before:bg-slate-200">
+          <ul className="relative mt-5 space-y-6 border-l border-slate-200 pl-5">
             {recentActivity.map((activity) => (
               <li key={activity.detail} className="relative">
-                <span className="absolute left-[5px] top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white ring-2 ring-primary/15">
-                  <span className="h-2 w-2 rounded-full bg-primary"></span>
-                </span>
+                <span className="absolute -left-[9px] top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-primary"></span>
                 <p className="text-sm font-semibold text-slate-900">{activity.detail}</p>
-                <p className="text-xs font-medium text-slate-500">{activity.time}</p>
+                <p className="text-xs text-slate-500">{activity.time}</p>
               </li>
             ))}
           </ul>
