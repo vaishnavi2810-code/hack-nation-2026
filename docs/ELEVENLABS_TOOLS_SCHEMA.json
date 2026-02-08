@@ -1,0 +1,317 @@
+{
+  "instructions": "IMPORTANT: Replace YOUR-NGROK-URL in all tool URLs with your actual ngrok URL (e.g., https://abc-123-def-456.ngrok.io)",
+  "tools": [
+    {
+      "type": "webhook",
+      "name": "check_availability",
+      "description": "Check available appointment times for a specific date. Use this when the patient asks about availability on a specific day.",
+      "api_schema": {
+        "url": "https://trieciously-unpumped-ora.ngrok-free.dev/api/calendar/availability",
+        "method": "POST",
+        "path_params_schema": [],
+        "query_params_schema": [],
+        "request_body_schema": {
+          "id": "request_body",
+          "description": "Request body parameters",
+          "type": "object",
+          "required": true,
+          "properties": [
+            {
+              "id": "date",
+              "type": "string",
+              "description": "Date to check in YYYY-MM-DD format (e.g., 2026-02-15)",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            }
+          ]
+        },
+        "request_headers": [
+          {
+            "name": "Content-Type",
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "value"
+          }
+        ],
+        "auth_connection": null
+      },
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "assignments": [],
+      "disable_interruptions": false,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "response_timeout_secs": 20,
+      "force_pre_tool_speech": "auto",
+      "execution_mode": "immediate"
+    },
+    {
+      "type": "webhook",
+      "name": "list_my_appointments",
+      "description": "Retrieve all upcoming appointments for the patient. Use this when the patient asks 'what are my appointments' or 'when is my next appointment'.",
+      "api_schema": {
+        "url": "https://trieciously-unpumped-ora.ngrok-free.dev/api/appointments/list",
+        "method": "POST",
+        "path_params_schema": [],
+        "query_params_schema": [],
+        "request_body_schema": {
+          "id": "request_body",
+          "description": "Request body parameters",
+          "type": "object",
+          "required": true,
+          "properties": [
+            {
+              "id": "phone_number",
+              "type": "string",
+              "description": "Patient's phone number (auto-provided from incoming call)",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            }
+          ]
+        },
+        "request_headers": [
+          {
+            "name": "Content-Type",
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "value"
+          }
+        ],
+        "auth_connection": null
+      },
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "assignments": [],
+      "disable_interruptions": false,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "response_timeout_secs": 20,
+      "force_pre_tool_speech": "auto",
+      "execution_mode": "immediate"
+    },
+    {
+      "type": "webhook",
+      "name": "schedule_appointment",
+      "description": "Schedule a new appointment. Use this when the patient has selected a date and time they want to book.",
+      "api_schema": {
+        "url": "https://trieciously-unpumped-ora.ngrok-free.dev/api/appointments/schedule",
+        "method": "POST",
+        "path_params_schema": [],
+        "query_params_schema": [],
+        "request_body_schema": {
+          "id": "request_body",
+          "description": "Request body parameters",
+          "type": "object",
+          "required": true,
+          "properties": [
+            {
+              "id": "phone_number",
+              "type": "string",
+              "description": "Patient's phone number",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            },
+            {
+              "id": "patient_name",
+              "type": "string",
+              "description": "Patient's full name",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            },
+            {
+              "id": "date",
+              "type": "string",
+              "description": "Appointment date in YYYY-MM-DD format",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            },
+            {
+              "id": "time",
+              "type": "string",
+              "description": "Appointment time in HH:MM format (e.g., 14:30)",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            },
+            {
+              "id": "appointment_type",
+              "type": "string",
+              "description": "Type of appointment (e.g., General Checkup, Follow-up)",
+              "dynamic_variable": "",
+              "required": false,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            }
+          ]
+        },
+        "request_headers": [
+          {
+            "name": "Content-Type",
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "value"
+          }
+        ],
+        "auth_connection": null
+      },
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "assignments": [],
+      "disable_interruptions": false,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "response_timeout_secs": 20,
+      "force_pre_tool_speech": "auto",
+      "execution_mode": "immediate"
+    },
+    {
+      "type": "webhook",
+      "name": "reschedule_appointment",
+      "description": "Reschedule an existing appointment to a new date and time.",
+      "api_schema": {
+        "url": "https://trieciously-unpumped-ora.ngrok-free.dev/api/appointments/reschedule",
+        "method": "POST",
+        "path_params_schema": [],
+        "query_params_schema": [],
+        "request_body_schema": {
+          "id": "request_body",
+          "description": "Request body parameters",
+          "type": "object",
+          "required": true,
+          "properties": [
+            {
+              "id": "phone_number",
+              "type": "string",
+              "description": "Patient's phone number",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            },
+            {
+              "id": "appointment_id",
+              "type": "string",
+              "description": "ID of the appointment to reschedule",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            },
+            {
+              "id": "new_date",
+              "type": "string",
+              "description": "New appointment date in YYYY-MM-DD format",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            },
+            {
+              "id": "new_time",
+              "type": "string",
+              "description": "New appointment time in HH:MM format (e.g., 14:30)",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            }
+          ]
+        },
+        "request_headers": [
+          {
+            "name": "Content-Type",
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "value"
+          }
+        ],
+        "auth_connection": null
+      },
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "assignments": [],
+      "disable_interruptions": false,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "response_timeout_secs": 20,
+      "force_pre_tool_speech": "auto",
+      "execution_mode": "immediate"
+    },
+    {
+      "type": "webhook",
+      "name": "cancel_appointment",
+      "description": "Cancel an existing appointment. Use this when the patient wants to cancel an appointment.",
+      "api_schema": {
+        "url": "https://trieciously-unpumped-ora.ngrok-free.dev/api/appointments/cancel",
+        "method": "POST",
+        "path_params_schema": [],
+        "query_params_schema": [],
+        "request_body_schema": {
+          "id": "request_body",
+          "description": "Request body parameters",
+          "type": "object",
+          "required": true,
+          "properties": [
+            {
+              "id": "phone_number",
+              "type": "string",
+              "description": "Patient's phone number",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            },
+            {
+              "id": "appointment_id",
+              "type": "string",
+              "description": "ID of the appointment to cancel",
+              "dynamic_variable": "",
+              "required": true,
+              "constant_value": "",
+              "value_type": "llm_prompt"
+            }
+          ]
+        },
+        "request_headers": [
+          {
+            "name": "Content-Type",
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "value"
+          }
+        ],
+        "auth_connection": null
+      },
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "assignments": [],
+      "disable_interruptions": false,
+      "tool_call_sound": null,
+      "tool_call_sound_behavior": "auto",
+      "tool_error_handling_mode": "auto",
+      "response_timeout_secs": 20,
+      "force_pre_tool_speech": "auto",
+      "execution_mode": "immediate"
+    }
+  ]
+}

@@ -79,8 +79,90 @@ Desktop.ini
 # ----- Logs -----
 logs/
 
-# Logs
-logs
+# ===========================================
+# CallPilot .gitignore
+# ===========================================
+
+# ----- Google OAuth & Secrets (CRITICAL) -----
+credentials.json
+token.json
+*.pem
+*.key
+service-account.json
+*-credentials.json
+*-service-account.json
+client_secret*.json
+gcp-oauth*.json
+
+# ----- Environment Variables -----
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ----- Virtual Environments -----
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+pythonenv*/
+
+# ----- Testing -----
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# ----- IDE / Editors -----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ----- OS Files -----
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ----- Logs -----
+logs/
 
 *.log
 npm-debug.log*
@@ -100,21 +182,9 @@ callpilot.db
 .cache/
 
 .idea
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# ----- Misc -----
+*.bak
+*.tmp
+*.temp
+.cache/
