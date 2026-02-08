@@ -1,10 +1,11 @@
+import type { ComponentType, SVGProps } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 type StatCardProps = {
   title: string
   value: string
   change: string
-  icon: LucideIcon
+  icon: ComponentType<SVGProps<SVGSVGElement>>
   accent?: 'primary' | 'success' | 'warning'
 }
 

@@ -61,8 +61,8 @@ const LoginPage = () => {
 
         <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white/60 px-6 py-4 text-xs text-slate-500">
           Need onboarding?{' '}
-          <Link to="/connect-calendar" className="font-semibold text-primary">
-            Connect Google Calendar
+          <Link to="/onboarding" className="font-semibold text-primary">
+            Start onboarding
           </Link>{' '}
           to activate your clinic workspace.
         </div>

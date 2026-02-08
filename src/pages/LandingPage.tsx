@@ -61,7 +61,7 @@ const LandingPage = () => {
             Doctor Login
           </Link>
           <Link
-            to="/login"
+            to="/onboarding"
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             Get Started
@@ -86,7 +86,7 @@ const LandingPage = () => {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
-                to="/login"
+                to="/onboarding"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
                 Start onboarding
