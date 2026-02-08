@@ -183,6 +183,46 @@ LOG_LEVEL = get_optional_var("LOG_LEVEL", "INFO")
 API_BASE_URL = get_optional_var("API_BASE_URL", "http://localhost:8000")
 
 # ============================================================================
+# FRONTEND & CORS
+# ============================================================================
+DEFAULT_FRONTEND_OAUTH_REDIRECT_URL = ""
+DEFAULT_CORS_ALLOWED_ORIGINS = ""
+CORS_ALLOWED_ORIGINS_SEPARATOR = ","
+
+FRONTEND_OAUTH_REDIRECT_URL = get_optional_var(
+    "FRONTEND_OAUTH_REDIRECT_URL",
+    DEFAULT_FRONTEND_OAUTH_REDIRECT_URL
+)
+
+_cors_allowed_origins_raw = get_optional_var(
+    "CORS_ALLOWED_ORIGINS",
+    DEFAULT_CORS_ALLOWED_ORIGINS
+)
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in _cors_allowed_origins_raw.split(CORS_ALLOWED_ORIGINS_SEPARATOR)
+    if origin.strip()
+]
+
+# ============================================================================
+# OAUTHLIB SETTINGS
+# ============================================================================
+DEFAULT_OAUTHLIB_RELAX_TOKEN_SCOPE = "1"
+OAUTHLIB_RELAX_TOKEN_SCOPE = get_optional_var(
+    "OAUTHLIB_RELAX_TOKEN_SCOPE",
+    DEFAULT_OAUTHLIB_RELAX_TOKEN_SCOPE
+)
+
+# ============================================================================
+# GOOGLE CREDENTIALS
+# ============================================================================
+DEFAULT_GOOGLE_CREDENTIALS_PATH = ""
+GOOGLE_CREDENTIALS_PATH = get_optional_var(
+    "GOOGLE_CREDENTIALS_PATH",
+    DEFAULT_GOOGLE_CREDENTIALS_PATH
+)
+
+# ============================================================================
 # WEBHOOK CONFIG
 # ============================================================================
 WEBHOOK_URL = get_optional_var("WEBHOOK_URL", "http://localhost:8000/api/webhooks/elevenlabs")
