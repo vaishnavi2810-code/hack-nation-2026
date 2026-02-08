@@ -538,47 +538,57 @@ def handle_google_oauth_callback(
     Handle Google OAuth callback.
 
     1. User authorizes, Google redirects with code
-    2. Backend exchanges code for OAuth token (saved to file)
-    3. User can now access Google Calendar
+    2. Backend exchanges code for OAuth token
+    3. Backend fetches user info from Google
+    4. Backend creates/updates user and session in DB
 
     Args:
         code: Authorization code from Google
         state: State token for CSRF protection
+        db: Database session
+        redirect_on_success: Whether to redirect on success (GET flow)
+        redirect_on_error: Whether to redirect on error (GET flow)
 
     Returns:
-        success: True if authentication succeeded
-        email: User's email address
-        message: Status message
+        JSON response or RedirectResponse with tokens
     """
     print(f"{Fore.CYAN}[AUTH] === GOOGLE OAUTH CALLBACK HANDLER START ===")
     try:
-        # Exchange Google auth code for OAuth token
+        # Exchange Google auth code for OAuth token (single exchange)
         oauth_token = auth_service.exchange_oauth_code_for_token(
             code,
             state
         )
 
         if not oauth_token:
+            print(f"{Fore.RED}[AUTH] ❌ Token exchange returned None")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=OAUTH_ERROR_EXCHANGE_FAILED
             )
 
-        # Use GoogleAuthManager to handle the callback
-        success, message, email = google_auth.handle_callback(code)
+        print(f"{Fore.GREEN}[AUTH] ✅ Token exchange successful")
 
-        if not success:
-            print(f"{Fore.RED}[AUTH] ❌ handle_callback failed: {message}")
+        # Get user info from Google using the access token
+        access_token = oauth_token.get("access_token")
+        user_info = auth_service.get_user_info_from_google(access_token)
+
+        if not user_info or not user_info.get("email"):
+            print(f"{Fore.RED}[AUTH] ❌ Failed to get user info from Google")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=OAUTH_ERROR_USERINFO_FAILED
             )
 
+        email = user_info["email"]
+        name = user_info.get("name", "")
+        print(f"{Fore.GREEN}[AUTH] ✅ Got user info: {email}")
+
         # Create or update user with OAuth token
         user = auth_service.create_or_update_user(
             db=db,
-            email=user_info["email"],
-            name=user_info.get("name", ""),
+            email=email,
+            name=name,
             oauth_token_data=oauth_token
         )
 
@@ -588,9 +598,8 @@ def handle_google_oauth_callback(
                 detail=OAUTH_ERROR_CREATE_USER_FAILED
             )
 
-        print(f"{Fore.GREEN}[AUTH] ✅ OAuth authentication successful")
-        print(f"{Fore.CYAN}[AUTH]   Email: {email}")
-        print(f"{Fore.CYAN}[AUTH]   Message: {message}")
+        # Create session with JWT tokens
+        session = auth_service.create_session(db, user.id)
 
         if not session:
             raise HTTPException(
@@ -598,10 +607,16 @@ def handle_google_oauth_callback(
                 detail=OAUTH_ERROR_CREATE_SESSION_FAILED
             )
 
-        return {
-            "success": True,
-            "email": email,
-            "message": message
+        print(f"{Fore.GREEN}[AUTH] ✅ OAuth authentication successful")
+        print(f"{Fore.CYAN}[AUTH]   Email: {email}")
+        print(f"{Fore.CYAN}[AUTH]   User ID: {user.id}")
+
+        response_payload = {
+            OAUTH_REDIRECT_PARAM_ACCESS_TOKEN: session.access_token,
+            OAUTH_REDIRECT_PARAM_REFRESH_TOKEN: session.refresh_token,
+            OAUTH_REDIRECT_PARAM_TOKEN_TYPE: OAUTH_TOKEN_TYPE_BEARER,
+            OAUTH_REDIRECT_PARAM_EXPIRES_IN: config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            OAUTH_REDIRECT_PARAM_USER_ID: user.id,
         }
 
         if redirect_on_success and config.FRONTEND_OAUTH_REDIRECT_URL:
@@ -614,6 +629,7 @@ def handle_google_oauth_callback(
         return response_payload
 
     except HTTPException as exc:
+        print(f"{Fore.RED}[AUTH] ❌ HTTPException in callback: {exc.detail}")
         if redirect_on_error and config.FRONTEND_OAUTH_REDIRECT_URL:
             error_payload = {
                 OAUTH_REDIRECT_PARAM_ERROR: OAUTH_ERROR_GENERIC,
@@ -626,6 +642,9 @@ def handle_google_oauth_callback(
             return RedirectResponse(url=redirect_url)
         raise
     except Exception as e:
+        print(f"{Fore.RED}[AUTH] ❌ Unexpected error in callback: {str(e)}")
+        import traceback
+        traceback.print_exc()
         if redirect_on_error and config.FRONTEND_OAUTH_REDIRECT_URL:
             error_payload = {
                 OAUTH_REDIRECT_PARAM_ERROR: OAUTH_ERROR_GENERIC,
@@ -636,17 +655,38 @@ def handle_google_oauth_callback(
                 error_payload
             )
             return RedirectResponse(url=redirect_url)
-    except HTTPException as e:
-        print(f"{Fore.RED}[AUTH] ❌ HTTPException in callback: {e.detail}")
-        raise
-    except Exception as e:
-        print(f"{Fore.RED}[AUTH] ❌ Unexpected error in callback: {str(e)}")
-        import traceback
-        print(f"{Fore.RED}[AUTH] Traceback:")
-        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=OAUTH_CALLBACK_ERROR_TEMPLATE.format(error=str(e))
+        )
+
+
+@app.post("/api/auth/logout")
+async def logout(
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Logout the current user by invalidating all active sessions.
+    """
+    try:
+        sessions = db.query(database.UserSession).filter(
+            database.UserSession.user_id == current_user,
+            database.UserSession.is_active == True
+        ).all()
+
+        for session in sessions:
+            session.is_active = False
+
+        db.commit()
+
+        return {"success": True, "message": "Logged out successfully"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to logout: {str(e)}"
         )
 
 
@@ -938,79 +978,218 @@ async def mark_calendar_appointment_no_show(
 # ============================================================================
 
 @app.get("/api/patients", response_model=List[models.PatientResponse])
-async def list_patients(skip: int = 0, limit: int = 100):
+async def list_patients(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    List all patients
+    List all patients belonging to the authenticated doctor.
+    """
+    try:
+        patients = db.query(database.Patient).filter(
+            database.Patient.doctor_id == current_user
+        ).offset(skip).limit(limit).all()
 
-    TODO: Fetch from database with pagination
-    """
-    return []
+        results = []
+        for patient in patients:
+            last_appt = db.query(database.Appointment).filter(
+                database.Appointment.patient_id == patient.id
+            ).order_by(database.Appointment.date.desc()).first()
+
+            results.append({
+                "id": patient.id,
+                "name": patient.name,
+                "phone": patient.phone,
+                "email": patient.email,
+                "notes": patient.notes,
+                "created_at": patient.created_at,
+                "last_appointment": (
+                    datetime.strptime(last_appt.date, DATE_INPUT_FORMAT)
+                    if last_appt and last_appt.date else None
+                ),
+            })
+        return results
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list patients: {str(e)}"
+        )
 
 
 @app.post("/api/patients", response_model=models.PatientResponse)
-async def create_patient(request: models.PatientCreate):
+async def create_patient(
+    request: models.PatientCreate,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Create new patient record
+    Create a new patient record for the authenticated doctor.
+    """
+    import uuid
 
-    TODO: Validate phone number format
-    TODO: Store in database
-    """
-    return {
-        "id": "pat_placeholder",
-        "name": request.name,
-        "phone": request.phone,
-        "email": request.email,
-        "notes": request.notes,
-        "created_at": datetime.utcnow(),
-        "last_appointment": None
-    }
+    try:
+        patient_id = f"pat_{uuid.uuid4().hex[:12]}"
+        patient = database.Patient(
+            id=patient_id,
+            doctor_id=current_user,
+            name=request.name,
+            phone=request.phone,
+            email=request.email,
+            notes=request.notes,
+        )
+        db.add(patient)
+        db.commit()
+        db.refresh(patient)
+
+        return {
+            "id": patient.id,
+            "name": patient.name,
+            "phone": patient.phone,
+            "email": patient.email,
+            "notes": patient.notes,
+            "created_at": patient.created_at,
+            "last_appointment": None,
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create patient: {str(e)}"
+        )
 
 
 @app.get("/api/patients/{patient_id}", response_model=models.PatientResponse)
-async def get_patient(patient_id: str):
+async def get_patient(
+    patient_id: str,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Get patient details
+    Get patient details by ID.
+    """
+    patient = db.query(database.Patient).filter(
+        database.Patient.id == patient_id,
+        database.Patient.doctor_id == current_user
+    ).first()
 
-    TODO: Fetch from database
-    """
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_APPOINTMENT_NOT_FOUND
+        )
+
+    last_appt = db.query(database.Appointment).filter(
+        database.Appointment.patient_id == patient.id
+    ).order_by(database.Appointment.date.desc()).first()
+
     return {
-        "id": patient_id,
-        "name": "Patient Name",
-        "phone": "+1234567890",
-        "email": "patient@example.com",
-        "notes": None,
-        "created_at": datetime.utcnow(),
-        "last_appointment": None
+        "id": patient.id,
+        "name": patient.name,
+        "phone": patient.phone,
+        "email": patient.email,
+        "notes": patient.notes,
+        "created_at": patient.created_at,
+        "last_appointment": (
+            datetime.strptime(last_appt.date, DATE_INPUT_FORMAT)
+            if last_appt and last_appt.date else None
+        ),
     }
 
 
 @app.put("/api/patients/{patient_id}", response_model=models.PatientResponse)
-async def update_patient(patient_id: str, request: models.PatientUpdate):
+async def update_patient(
+    patient_id: str,
+    request: models.PatientUpdate,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Update patient record
+    Update an existing patient record.
+    """
+    patient = db.query(database.Patient).filter(
+        database.Patient.id == patient_id,
+        database.Patient.doctor_id == current_user
+    ).first()
 
-    TODO: Validate input
-    TODO: Update database
-    """
-    return {
-        "id": patient_id,
-        "name": request.name or "Patient Name",
-        "phone": request.phone or "+1234567890",
-        "email": request.email,
-        "notes": request.notes,
-        "created_at": datetime.utcnow(),
-        "last_appointment": None
-    }
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_APPOINTMENT_NOT_FOUND
+        )
+
+    try:
+        if request.name is not None:
+            patient.name = request.name
+        if request.phone is not None:
+            patient.phone = request.phone
+        if request.email is not None:
+            patient.email = request.email
+        if request.notes is not None:
+            patient.notes = request.notes
+
+        patient.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(patient)
+
+        last_appt = db.query(database.Appointment).filter(
+            database.Appointment.patient_id == patient.id
+        ).order_by(database.Appointment.date.desc()).first()
+
+        return {
+            "id": patient.id,
+            "name": patient.name,
+            "phone": patient.phone,
+            "email": patient.email,
+            "notes": patient.notes,
+            "created_at": patient.created_at,
+            "last_appointment": (
+                datetime.strptime(last_appt.date, DATE_INPUT_FORMAT)
+                if last_appt and last_appt.date else None
+            ),
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update patient: {str(e)}"
+        )
 
 
 @app.delete("/api/patients/{patient_id}")
-async def delete_patient(patient_id: str):
+async def delete_patient(
+    patient_id: str,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Delete patient record
+    Delete a patient record. Removes the patient from the database.
+    """
+    patient = db.query(database.Patient).filter(
+        database.Patient.id == patient_id,
+        database.Patient.doctor_id == current_user
+    ).first()
 
-    TODO: Soft delete from database (archive instead of remove)
-    """
-    return {"success": True, "message": f"Patient {patient_id} deleted"}
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_APPOINTMENT_NOT_FOUND
+        )
+
+    try:
+        db.delete(patient)
+        db.commit()
+        return {"success": True, "message": f"Patient {patient_id} deleted"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete patient: {str(e)}"
+        )
 
 
 # ============================================================================
@@ -1170,53 +1349,144 @@ async def create_appointment(
         )
 
 
-@app.put("/api/appointments/{appointment_id}", response_model=models.AppointmentResponse)
-async def update_appointment(appointment_id: str, request: models.AppointmentUpdate):
-    """
-    Update appointment
+def find_appointment_by_id_or_calendar_id(db, doctor_id: str, appointment_id: str):
+    """Look up an appointment by local ID first, then by calendar_event_id."""
+    appointment = db.query(database.Appointment).filter(
+        database.Appointment.doctor_id == doctor_id,
+        database.Appointment.id == appointment_id
+    ).first()
 
-    TODO: Add JWT authentication
-    TODO: Update Google Calendar event
-    TODO: Update database
+    if not appointment:
+        appointment = db.query(database.Appointment).filter(
+            database.Appointment.doctor_id == doctor_id,
+            database.Appointment.calendar_event_id == appointment_id
+        ).first()
+
+    return appointment
+
+
+@app.put("/api/appointments/{appointment_id}", response_model=models.AppointmentResponse)
+async def update_appointment(
+    appointment_id: str,
+    request: models.AppointmentUpdate,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    return {
-        "id": appointment_id,
-        "calendar_event_id": None,
-        "patient_id": "pat_placeholder",
-        "patient_name": "Patient Name",
-        "date": request.date or "2026-02-15",
-        "time": request.time or "14:00",
-        "duration_minutes": config.APPOINTMENT_DURATION_MINUTES,
-        "type": request.type or "General Checkup",
-        "status": request.status or "scheduled",
-        "notes": request.notes,
-        "reminder_sent": False,
-        "created_at": datetime.utcnow()
-    }
+    Update an existing appointment's details in the database.
+    """
+    appointment = find_appointment_by_id_or_calendar_id(db, current_user, appointment_id)
+
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_APPOINTMENT_NOT_FOUND
+        )
+
+    try:
+        if request.date is not None:
+            appointment.date = request.date
+        if request.time is not None:
+            appointment.time = request.time
+        if request.type is not None:
+            appointment.type = request.type
+        if request.notes is not None:
+            appointment.notes = request.notes
+        if request.status is not None:
+            appointment.status = request.status
+
+        appointment.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(appointment)
+
+        patient_name = appointment.patient.name if appointment.patient else APPOINTMENT_SUMMARY_FALLBACK
+
+        return {
+            "id": appointment.id,
+            "calendar_event_id": appointment.calendar_event_id,
+            "patient_id": appointment.patient_id,
+            "patient_name": patient_name,
+            "date": appointment.date,
+            "time": appointment.time,
+            "duration_minutes": appointment.duration_minutes or config.APPOINTMENT_DURATION_MINUTES,
+            "type": appointment.type,
+            "status": appointment.status,
+            "notes": appointment.notes,
+            "reminder_sent": appointment.reminder_sent or False,
+            "created_at": appointment.created_at,
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update appointment: {str(e)}"
+        )
 
 
 @app.delete("/api/appointments/{appointment_id}")
-async def delete_appointment(appointment_id: str):
+async def delete_appointment(
+    appointment_id: str,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Delete/cancel appointment
+    Cancel an appointment by setting its status to cancelled.
+    """
+    appointment = find_appointment_by_id_or_calendar_id(db, current_user, appointment_id)
 
-    TODO: Add JWT authentication
-    TODO: Delete from Google Calendar
-    TODO: Update database
-    TODO: Notify patient via SMS
-    """
-    return {"success": True, "message": f"Appointment {appointment_id} cancelled"}
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_APPOINTMENT_NOT_FOUND
+        )
+
+    try:
+        appointment.status = APPOINTMENT_STATUS_CANCELLED
+        appointment.updated_at = datetime.utcnow()
+        db.commit()
+
+        return {"success": True, "message": f"Appointment {appointment_id} cancelled"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to cancel appointment: {str(e)}"
+        )
 
 
 @app.post("/api/appointments/{appointment_id}/confirm")
-async def confirm_appointment(appointment_id: str, request: models.AppointmentConfirm):
+async def confirm_appointment(
+    appointment_id: str,
+    request: models.AppointmentConfirm,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Confirm appointment (patient callback from reminder)
+    Confirm an appointment by setting its status to confirmed.
+    """
+    appointment = find_appointment_by_id_or_calendar_id(db, current_user, appointment_id)
 
-    TODO: Update appointment status in database
-    TODO: Update Google Calendar event
-    """
-    return {"success": True, "message": "Appointment confirmed"}
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_APPOINTMENT_NOT_FOUND
+        )
+
+    try:
+        appointment.status = "confirmed"
+        appointment.updated_at = datetime.utcnow()
+        db.commit()
+
+        return {"success": True, "message": "Appointment confirmed"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to confirm appointment: {str(e)}"
+        )
 
 
 @app.post("/api/appointments/{appointment_id}/no-show")
@@ -1278,78 +1548,204 @@ async def mark_appointment_no_show(
 # ============================================================================
 
 @app.get("/api/calls", response_model=List[models.CallResponse])
-async def list_calls(skip: int = 0, limit: int = 100):
+async def list_calls(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    List all calls (inbound and outbound)
+    List all calls (inbound and outbound) for the authenticated doctor.
+    """
+    try:
+        calls = db.query(database.Call).filter(
+            database.Call.doctor_id == current_user
+        ).order_by(
+            database.Call.created_at.desc()
+        ).offset(skip).limit(limit).all()
 
-    TODO: Fetch from database with pagination
-    """
-    return []
+        return [
+            {
+                "id": call.id,
+                "call_sid": call.call_sid or "",
+                "patient_id": call.patient_id or "",
+                "patient_name": call.patient.name if call.patient else "",
+                "phone": call.phone_number,
+                "type": call.type or "",
+                "status": call.status or "",
+                "duration_seconds": call.duration_seconds or 0,
+                "started_at": call.started_at,
+                "ended_at": call.ended_at,
+                "created_at": call.created_at,
+            }
+            for call in calls
+        ]
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list calls: {str(e)}"
+        )
 
 
 @app.get("/api/calls/scheduled", response_model=models.ScheduledCallsResponse)
-async def get_scheduled_calls():
+async def get_scheduled_calls(
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Get scheduled outbound calls
+    Get scheduled outbound calls for the authenticated doctor.
+    """
+    try:
+        calls = db.query(database.Call).filter(
+            database.Call.doctor_id == current_user,
+            database.Call.status.in_(["initiated", "scheduled", "ringing"])
+        ).order_by(database.Call.created_at.desc()).all()
 
-    TODO: Query database for upcoming calls
-    """
-    return {"count": 0, "calls": []}
+        call_list = [
+            {
+                "id": call.id,
+                "call_sid": call.call_sid or "",
+                "patient_id": call.patient_id or "",
+                "patient_name": call.patient.name if call.patient else "",
+                "phone": call.phone_number,
+                "type": call.type or "",
+                "status": call.status or "",
+                "duration_seconds": call.duration_seconds or 0,
+                "started_at": call.started_at,
+                "ended_at": call.ended_at,
+                "created_at": call.created_at,
+            }
+            for call in calls
+        ]
+        return {"count": len(call_list), "calls": call_list}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list scheduled calls: {str(e)}"
+        )
 
 
 @app.get("/api/calls/{call_id}", response_model=models.CallResponse)
-async def get_call(call_id: str):
+async def get_call(
+    call_id: str,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Get call details
+    Get call details by ID.
+    """
+    call = db.query(database.Call).filter(
+        database.Call.id == call_id,
+        database.Call.doctor_id == current_user
+    ).first()
 
-    TODO: Fetch from database and Twilio
-    """
+    if not call:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Call not found"
+        )
+
     return {
-        "id": call_id,
-        "call_sid": "CA" + call_id,
-        "patient_id": "pat_placeholder",
-        "patient_name": "Patient Name",
-        "phone": "+1234567890",
-        "type": "reminder",
-        "status": "completed",
-        "duration_seconds": 120,
-        "started_at": datetime.utcnow(),
-        "ended_at": datetime.utcnow(),
-        "created_at": datetime.utcnow()
+        "id": call.id,
+        "call_sid": call.call_sid or "",
+        "patient_id": call.patient_id or "",
+        "patient_name": call.patient.name if call.patient else "",
+        "phone": call.phone_number,
+        "type": call.type or "",
+        "status": call.status or "",
+        "duration_seconds": call.duration_seconds or 0,
+        "started_at": call.started_at,
+        "ended_at": call.ended_at,
+        "created_at": call.created_at,
     }
 
 
 @app.post("/api/calls/manual", response_model=models.CallResponse)
-async def make_manual_call(request: models.CallCreate):
+async def make_manual_call(
+    request: models.CallCreate,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Manually initiate outbound call to patient
+    Initiate an outbound call to a patient.
 
-    TODO: Validate patient exists
-    TODO: Initiate Twilio call
-    TODO: Store in database
+    Looks up the patient by ID, initiates a Twilio call to their
+    phone number, and stores the call record in the database.
     """
-    try:
-        result = twilio.make_outbound_call(
-            to_number="+1234567890",  # TODO: Get from patient
-            twiml_url=config.WEBHOOK_URL
+    import uuid
+
+    # Look up patient to get their phone number
+    patient = db.query(database.Patient).filter(
+        database.Patient.id == request.patient_id,
+        database.Patient.doctor_id == current_user
+    ).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Patient not found"
         )
+
+    call_id = f"call_{uuid.uuid4().hex[:12]}"
+    call_type = request.call_type or "manual"
+    now = datetime.utcnow()
+
+    try:
+        # Build inline TwiML so Twilio doesn't need a public webhook URL
+        twiml_message = (
+            f"<Response><Say voice=\"alice\">{request.message}</Say></Response>"
+        )
+
+        # Initiate Twilio call with real patient phone
+        twilio_result = twilio.make_outbound_call(
+            to_number=patient.phone,
+            twiml_body=twiml_message,
+        )
+
+        # Save call record to database
+        call_record = database.Call(
+            id=call_id,
+            doctor_id=current_user,
+            patient_id=patient.id,
+            call_sid=twilio_result["call_sid"],
+            direction="outbound",
+            type=call_type,
+            phone_number=patient.phone,
+            status=twilio_result.get("status", "initiated"),
+            duration_seconds=0,
+            started_at=now,
+            created_at=now,
+        )
+        db.add(call_record)
+        db.commit()
+
         return {
-            "id": "call_placeholder",
-            "call_sid": result["call_sid"],
-            "patient_id": request.patient_id,
-            "patient_name": "Patient Name",
-            "phone": "+1234567890",
-            "type": request.call_type or "manual",
-            "status": result["status"],
+            "id": call_id,
+            "call_sid": twilio_result["call_sid"],
+            "patient_id": patient.id,
+            "patient_name": patient.name,
+            "phone": patient.phone,
+            "type": call_type,
+            "status": twilio_result.get("status", "initiated"),
             "duration_seconds": 0,
-            "started_at": datetime.utcnow(),
+            "started_at": now,
             "ended_at": None,
-            "created_at": datetime.utcnow()
+            "created_at": now,
         }
+
     except TwilioCallError as e:
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=config.ERROR_CALL_FAILED
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to schedule call: {str(e)}"
         )
 
 
@@ -1358,35 +1754,161 @@ async def make_manual_call(request: models.CallCreate):
 # ============================================================================
 
 @app.get("/api/dashboard/stats", response_model=models.DashboardStats)
-async def get_dashboard_stats():
+async def get_dashboard_stats(
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Get dashboard statistics
+    Get dashboard statistics calculated from the database.
 
-    TODO: Calculate from database
+    Counts patients, appointments (by status), and calls
+    belonging to the authenticated doctor.
     """
-    return {
-        "total_patients": 0,
-        "total_appointments": 0,
-        "upcoming_appointments": 0,
-        "completed_appointments": 0,
-        "no_show_count": 0,
-        "total_calls_made": 0,
-        "successful_calls": 0
-    }
+    from sqlalchemy import func
+
+    try:
+        total_patients = db.query(func.count(database.Patient.id)).filter(
+            database.Patient.doctor_id == current_user
+        ).scalar() or 0
+
+        total_appointments = db.query(func.count(database.Appointment.id)).filter(
+            database.Appointment.doctor_id == current_user
+        ).scalar() or 0
+
+        now_date = datetime.utcnow().strftime(DATE_OUTPUT_FORMAT)
+
+        upcoming_appointments = db.query(func.count(database.Appointment.id)).filter(
+            database.Appointment.doctor_id == current_user,
+            database.Appointment.date >= now_date,
+            database.Appointment.status.in_([
+                APPOINTMENT_STATUS_SCHEDULED, "confirmed"
+            ])
+        ).scalar() or 0
+
+        completed_appointments = db.query(func.count(database.Appointment.id)).filter(
+            database.Appointment.doctor_id == current_user,
+            database.Appointment.status == "completed"
+        ).scalar() or 0
+
+        no_show_count = db.query(func.count(database.Appointment.id)).filter(
+            database.Appointment.doctor_id == current_user,
+            database.Appointment.status == APPOINTMENT_STATUS_NO_SHOW
+        ).scalar() or 0
+
+        total_calls_made = db.query(func.count(database.Call.id)).filter(
+            database.Call.doctor_id == current_user
+        ).scalar() or 0
+
+        successful_calls = db.query(func.count(database.Call.id)).filter(
+            database.Call.doctor_id == current_user,
+            database.Call.status == "completed"
+        ).scalar() or 0
+
+        return {
+            "total_patients": total_patients,
+            "total_appointments": total_appointments,
+            "upcoming_appointments": upcoming_appointments,
+            "completed_appointments": completed_appointments,
+            "no_show_count": no_show_count,
+            "total_calls_made": total_calls_made,
+            "successful_calls": successful_calls,
+        }
+
+    except Exception as e:
+        print(f"{Fore.RED}[DASHBOARD] ❌ Failed to load stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load dashboard stats: {str(e)}"
+        )
 
 
 @app.get("/api/dashboard/activity", response_model=models.DashboardActivity)
-async def get_dashboard_activity():
+async def get_dashboard_activity(
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Get recent activity (appointments, calls, upcoming events)
+    Get recent activity: latest appointments, calls, and upcoming events.
 
-    TODO: Query database for recent records
+    Queries the database for the most recent records belonging to the
+    authenticated doctor.
     """
-    return {
-        "recent_appointments": [],
-        "recent_calls": [],
-        "upcoming_events": []
-    }
+    RECENT_ACTIVITY_LIMIT = 5
+
+    try:
+        recent_appointments = db.query(database.Appointment).filter(
+            database.Appointment.doctor_id == current_user
+        ).order_by(
+            database.Appointment.updated_at.desc()
+        ).limit(RECENT_ACTIVITY_LIMIT).all()
+
+        recent_calls = db.query(database.Call).filter(
+            database.Call.doctor_id == current_user
+        ).order_by(
+            database.Call.created_at.desc()
+        ).limit(RECENT_ACTIVITY_LIMIT).all()
+
+        now_date = datetime.utcnow().strftime(DATE_OUTPUT_FORMAT)
+        upcoming_events = db.query(database.Appointment).filter(
+            database.Appointment.doctor_id == current_user,
+            database.Appointment.date >= now_date,
+            database.Appointment.status.in_([
+                APPOINTMENT_STATUS_SCHEDULED, "confirmed"
+            ])
+        ).order_by(
+            database.Appointment.date.asc(),
+            database.Appointment.time.asc()
+        ).limit(RECENT_ACTIVITY_LIMIT).all()
+
+        def appointment_to_dict(appt):
+            patient_name = APPOINTMENT_SUMMARY_FALLBACK
+            if appt.patient:
+                patient_name = appt.patient.name
+            return {
+                "id": appt.id,
+                "calendar_event_id": appt.calendar_event_id,
+                "patient_id": appt.patient_id,
+                "patient_name": patient_name,
+                "date": appt.date,
+                "time": appt.time,
+                "duration_minutes": appt.duration_minutes or config.APPOINTMENT_DURATION_MINUTES,
+                "type": appt.type or APPOINTMENT_TYPE_FALLBACK,
+                "status": appt.status or APPOINTMENT_STATUS_SCHEDULED,
+                "notes": appt.notes,
+                "reminder_sent": appt.reminder_sent or False,
+                "created_at": appt.created_at,
+            }
+
+        def call_to_dict(call):
+            patient_name = ""
+            if call.patient:
+                patient_name = call.patient.name
+            return {
+                "id": call.id,
+                "call_sid": call.call_sid or "",
+                "patient_id": call.patient_id or "",
+                "patient_name": patient_name,
+                "phone": call.phone_number,
+                "type": call.type or "",
+                "status": call.status or "",
+                "duration_seconds": call.duration_seconds or 0,
+                "started_at": call.started_at,
+                "ended_at": call.ended_at,
+                "created_at": call.created_at,
+            }
+
+        return {
+            "recent_appointments": [appointment_to_dict(a) for a in recent_appointments],
+            "recent_calls": [call_to_dict(c) for c in recent_calls],
+            "upcoming_events": [appointment_to_dict(a) for a in upcoming_events],
+        }
+
+    except Exception as e:
+        print(f"{Fore.RED}[DASHBOARD] ❌ Failed to load activity: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load dashboard activity: {str(e)}"
+        )
 
 
 # ============================================================================

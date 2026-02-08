@@ -96,6 +96,9 @@ export const API_PATHS = {
 } as const
 
 const APPOINTMENTS_PREFIX = `${API_PATHS.APPOINTMENTS}/`
+const PATIENTS_PREFIX = `${API_PATHS.PATIENTS}/`
+const CALLS_PREFIX = `${API_PATHS.CALLS}/`
+const CALENDAR_APPOINTMENTS_PREFIX = `${API_PATHS.CALENDAR_APPOINTMENTS}/`
 const AUTH_REQUIRED_PATHS = new Set<string>([
   API_PATHS.CALENDAR_STATUS,
   API_PATHS.CALENDAR_DISCONNECT,
@@ -103,6 +106,11 @@ const AUTH_REQUIRED_PATHS = new Set<string>([
   API_PATHS.CALENDAR_APPOINTMENTS,
   API_PATHS.APPOINTMENTS,
   API_PATHS.APPOINTMENTS_UPCOMING,
+  API_PATHS.PATIENTS,
+  API_PATHS.CALLS,
+  API_PATHS.CALLS_SCHEDULED,
+  API_PATHS.DASHBOARD_STATS,
+  API_PATHS.DASHBOARD_ACTIVITY,
 ])
 
 export const HTTP = HTTP_METHODS
@@ -207,7 +215,13 @@ const normalizePath = (path: string) => path.split(QUERY_SEPARATOR)[0] ?? path
 
 const isAuthRequiredPath = (path: string) => {
   const normalizedPath = normalizePath(path)
-  return AUTH_REQUIRED_PATHS.has(normalizedPath) || normalizedPath.startsWith(APPOINTMENTS_PREFIX)
+  return (
+    AUTH_REQUIRED_PATHS.has(normalizedPath) ||
+    normalizedPath.startsWith(APPOINTMENTS_PREFIX) ||
+    normalizedPath.startsWith(PATIENTS_PREFIX) ||
+    normalizedPath.startsWith(CALLS_PREFIX) ||
+    normalizedPath.startsWith(CALENDAR_APPOINTMENTS_PREFIX)
+  )
 }
 
 const resolveRequiresAuth = (path: string, requiresAuth?: boolean) => {

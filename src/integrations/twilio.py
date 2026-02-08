@@ -90,17 +90,23 @@ class TwilioWrapper:
         to_number: str,
         from_number: Optional[str] = None,
         twiml_url: Optional[str] = None,
+        twiml_body: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
         Initiate an outbound call to a patient.
 
-        Used for appointment reminders.
+        Used for appointment reminders and manual calls.
+
+        Supports two modes:
+        - twiml_body: Inline TwiML string (no public URL needed)
+        - twiml_url: URL to TwiML instructions (must be publicly accessible)
 
         Args:
             to_number: Recipient's phone number (E.164 format)
             from_number: Caller ID (defaults to TWILIO_PHONE_NUMBER)
             twiml_url: URL to TwiML instructions for the call
+            twiml_body: Inline TwiML string (takes priority over url)
             **kwargs: Additional Twilio Call API parameters
 
         Returns:
@@ -113,13 +119,21 @@ class TwilioWrapper:
             from_number = self.phone_number
 
         try:
-            call = self.client.calls.create(
-                to=to_number,
-                from_=from_number,
-                url=twiml_url or config.WEBHOOK_URL,
-                timeout=config.TWILIO_API_TIMEOUT_SECONDS,
-                **kwargs
-            )
+            call_params = {
+                "to": to_number,
+                "from_": from_number,
+                "timeout": config.TWILIO_API_TIMEOUT_SECONDS,
+                **kwargs,
+            }
+
+            if twiml_body:
+                call_params["twiml"] = twiml_body
+            elif twiml_url:
+                call_params["url"] = twiml_url
+            else:
+                call_params["url"] = config.WEBHOOK_URL
+
+            call = self.client.calls.create(**call_params)
 
             if config.DEBUG:
                 print(f"{Fore.CYAN}[DEBUG] Outbound call initiated: {call.sid}")

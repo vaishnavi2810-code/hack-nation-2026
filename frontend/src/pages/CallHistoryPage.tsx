@@ -86,7 +86,7 @@ const CallHistoryPage = () => {
 
   const loadCalls = async () => {
     setStatusMessage(STATUS_LOADING)
-    const result = await apiRequest<CallRecord[]>(API_PATHS.CALLS, { method: HTTP.GET })
+    const result = await apiRequest<CallRecord[]>(API_PATHS.CALLS, { method: HTTP.GET, requiresAuth: true })
 
     if (result.error) {
       setStatusMessage(STATUS_LOAD_ERROR)
@@ -115,6 +115,7 @@ const CallHistoryPage = () => {
 
     const result = await apiRequest(API_PATHS.CALLS_MANUAL, {
       method: HTTP.POST,
+      requiresAuth: true,
       body: {
         patient_id: patientId,
         message,
@@ -130,7 +131,7 @@ const CallHistoryPage = () => {
   }
 
   const handleViewCall = async (callId: string) => {
-    const result = await apiRequest<CallRecord>(API_PATHS.CALL_BY_ID(callId), { method: HTTP.GET })
+    const result = await apiRequest<CallRecord>(API_PATHS.CALL_BY_ID(callId), { method: HTTP.GET, requiresAuth: true })
 
     if (result.error || !result.data) {
       setStatusMessage(STATUS_ACTION_ERROR)

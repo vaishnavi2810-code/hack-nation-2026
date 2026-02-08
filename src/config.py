@@ -126,6 +126,16 @@ appointment_config = AppointmentConfig()
 app_config = AppConfig()
 
 # ============================================================================
+# APPOINTMENT CONFIG (top-level constants from Pydantic model)
+# ============================================================================
+APPOINTMENT_DURATION_MINUTES = int(
+    get_optional_var("APPOINTMENT_DURATION_MINUTES", str(appointment_config.duration_minutes))
+)
+APPOINTMENT_BUFFER_MINUTES = int(
+    get_optional_var("APPOINTMENT_BUFFER_MINUTES", str(appointment_config.buffer_minutes))
+)
+
+# ============================================================================
 # GOOGLE OAUTH CONFIG
 # ============================================================================
 DEFAULT_GOOGLE_CREDENTIALS_PATH = "./google_credentials.json"
@@ -154,6 +164,11 @@ GOOGLE_OAUTH_SCOPES = [
     for scope in GOOGLE_OAUTH_SCOPES_RAW.split(GOOGLE_OAUTH_SCOPES_SEPARATOR)
     if scope.strip()
 ]
+
+GOOGLE_REDIRECT_URI = get_optional_var(
+    "GOOGLE_REDIRECT_URI",
+    None
+)
 
 DEFAULT_CALENDAR_MAX_RESULTS = "250"
 CALENDAR_MAX_RESULTS = int(get_optional_var("CALENDAR_MAX_RESULTS", DEFAULT_CALENDAR_MAX_RESULTS))

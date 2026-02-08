@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { CalendarCheck, CalendarDays, HeartPulse } from 'lucide-react'
+import {
+  CalendarCheck,
+  CalendarDays,
+  HeartPulse,
+  LayoutDashboard,
+  PhoneCall,
+  Settings,
+  UsersRound,
+  Link as LinkIcon,
+} from 'lucide-react'
 import { apiRequest, API_PATHS, ERRORS, HTTP } from '../lib/api'
 
 type DoctorProfile = {
@@ -14,11 +23,21 @@ type DoctorProfile = {
 }
 
 const ROUTE_APP = '/app'
+const ROUTE_DASHBOARD = '/app/dashboard'
 const ROUTE_APPOINTMENTS = '/app/appointments'
+const ROUTE_PATIENTS = '/app/patients'
+const ROUTE_CALLS = '/app/calls'
+const ROUTE_CALENDAR = '/app/calendar'
+const ROUTE_SETTINGS = '/app/settings'
 const BRAND_NAME = 'MomMode'
 const BRAND_SUBTITLE = 'Doctor Portal'
-const NAV_LABEL_SUMMARY = 'Appointment summary'
+const NAV_LABEL_SUMMARY = 'Summary'
+const NAV_LABEL_DASHBOARD = 'Dashboard'
 const NAV_LABEL_APPOINTMENTS = 'Appointments'
+const NAV_LABEL_PATIENTS = 'Patients'
+const NAV_LABEL_CALLS = 'Call history'
+const NAV_LABEL_CALENDAR = 'Calendar'
+const NAV_LABEL_SETTINGS = 'Settings'
 const FOOTER_TITLE = 'Doctor workspace'
 const FOOTER_SUBTITLE = 'Login to review appointment summaries.'
 const FOOTER_LOGGED_IN_SUBTITLE = 'Signed in'
@@ -27,6 +46,10 @@ const EMPTY_STRING = ''
 const navItems = [
   { label: NAV_LABEL_SUMMARY, to: ROUTE_APP, icon: CalendarDays },
   { label: NAV_LABEL_APPOINTMENTS, to: ROUTE_APPOINTMENTS, icon: CalendarCheck },
+  { label: NAV_LABEL_PATIENTS, to: ROUTE_PATIENTS, icon: UsersRound },
+  { label: NAV_LABEL_CALLS, to: ROUTE_CALLS, icon: PhoneCall },
+  { label: NAV_LABEL_CALENDAR, to: ROUTE_CALENDAR, icon: LinkIcon },
+  { label: NAV_LABEL_SETTINGS, to: ROUTE_SETTINGS, icon: Settings },
 ]
 
 const Sidebar = () => {

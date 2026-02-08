@@ -63,14 +63,17 @@ const PatientsPage = () => {
 
   const loadPatients = async () => {
     setStatusMessage(STATUS_LOADING)
-    const result = await apiRequest<PatientRecord[]>(API_PATHS.PATIENTS, { method: HTTP.GET })
+    const result = await apiRequest<PatientRecord[]>(API_PATHS.PATIENTS, {
+      method: HTTP.GET,
+      requiresAuth: true,
+    })
 
     if (result.error) {
       setStatusMessage(STATUS_LOAD_ERROR)
       return
     }
 
-    if (result.data) {
+    if (result.data && result.data.length > 0) {
       const mappedPatients = result.data.map((patient) => ({
         id: patient.id,
         name: patient.name,
@@ -101,6 +104,7 @@ const PatientsPage = () => {
 
     const result = await apiRequest(API_PATHS.PATIENTS, {
       method: HTTP.POST,
+      requiresAuth: true,
       body: {
         name,
         phone,
@@ -120,6 +124,7 @@ const PatientsPage = () => {
   const handleViewPatient = async (patientId: string) => {
     const result = await apiRequest<PatientRecord>(API_PATHS.PATIENT_BY_ID(patientId), {
       method: HTTP.GET,
+      requiresAuth: true,
     })
 
     if (result.error || !result.data) {
@@ -138,6 +143,7 @@ const PatientsPage = () => {
 
     const result = await apiRequest(API_PATHS.PATIENT_BY_ID(patientId), {
       method: HTTP.PUT,
+      requiresAuth: true,
       body: {
         name: name || undefined,
         phone: phone || undefined,
@@ -157,6 +163,7 @@ const PatientsPage = () => {
   const handleDeletePatient = async (patientId: string) => {
     const result = await apiRequest(API_PATHS.PATIENT_BY_ID(patientId), {
       method: HTTP.DELETE,
+      requiresAuth: true,
     })
 
     if (result.error) {
@@ -197,7 +204,7 @@ const PatientsPage = () => {
         />
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <UsersRound className="h-4 w-4" />
-          128 active patients
+          {patients.length} active patients
         </div>
       </div>
 
