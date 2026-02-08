@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import app_config
 from src.api.routes.calendar import router as calendar_router
+from src.api.routes.auth import router as auth_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -33,6 +34,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(calendar_router)
+app.include_router(auth_router)
 
 
 # ============== Health Check ==============

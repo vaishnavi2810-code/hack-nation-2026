@@ -22,7 +22,7 @@ class GoogleCalendarConfig(BaseSettings):
     client_id: str = Field(default="", description="Google OAuth Client ID")
     client_secret: str = Field(default="", description="Google OAuth Client Secret")
     redirect_uri: str = Field(
-        default="http://localhost:8000/api/calendar/auth-callback",
+        default="http://localhost:8000/api/auth/google/callback",
         description="OAuth redirect URI"
     )
     scopes: List[str] = Field(
