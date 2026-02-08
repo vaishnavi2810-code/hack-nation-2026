@@ -33,6 +33,8 @@ const HTTP_METHODS = {
   DELETE: 'DELETE',
 } as const
 
+const sanitizeBaseUrl = (value: string) => value.replace(/\/+$/, '')
+
 type HttpMethod = (typeof HTTP_METHODS)[keyof typeof HTTP_METHODS]
 
 type ApiRequestOptions = {
@@ -176,8 +178,6 @@ export const apiRequest = async <T>(
     window.clearTimeout(timeoutId)
   }
 }
-
-const sanitizeBaseUrl = (value: string) => value.replace(/\/+$/, '')
 
 const buildUrl = (path: string) => `${API_BASE_URL}/${path.replace(/^\/+/, EMPTY_STRING)}`
 
