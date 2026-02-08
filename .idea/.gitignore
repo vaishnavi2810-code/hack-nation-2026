@@ -1,0 +1,92 @@
+# ===========================================
+# CallPilot .gitignore
+# ===========================================
+
+# ----- Credentials & Secrets (CRITICAL) -----
+credentials.json
+token.json
+*.pem
+*.key
+service-account.json
+*-credentials.json
+*-service-account.json
+
+# ----- Environment Variables -----
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ----- Virtual Environments -----
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+pythonenv*/
+
+# ----- Testing -----
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# ----- IDE / Editors -----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ----- OS Files -----
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ----- Logs -----
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ----- Misc -----
+*.bak
+*.tmp
+*.temp
+.cache/
