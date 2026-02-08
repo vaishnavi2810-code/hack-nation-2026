@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
+  CalendarCheck,
   CalendarDays,
   HeartPulse,
   LayoutDashboard,
@@ -12,7 +13,8 @@ const navItems = [
   { label: 'Dashboard', to: '/app', icon: LayoutDashboard },
   { label: 'My Patients', to: '/app/patients', icon: UsersRound },
   { label: 'Appointments', to: '/app/appointments', icon: CalendarDays },
-  { label: 'Call History', to: '/app/calls', icon: PhoneCall },
+  { label: 'Calls', to: '/app/calls', icon: PhoneCall },
+  { label: 'Calendar', to: '/connect-calendar', icon: CalendarCheck },
   { label: 'Settings', to: '/app/settings', icon: Settings },
 ]
 

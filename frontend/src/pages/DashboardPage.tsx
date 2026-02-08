@@ -1,17 +1,23 @@
-import { CalendarDays, Clock, PhoneCall, Sparkles, UsersRound } from 'lucide-react'
+import { CalendarDays, Clock, PhoneCall, UsersRound } from 'lucide-react'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
 
-const callQueue = [
-  { caller: 'Lydia Green', reason: 'Reschedule request', time: '9:10 AM', status: 'Escalated' },
-  { caller: 'Carlos Diaz', reason: 'New patient intake', time: '9:22 AM', status: 'In progress' },
-  { caller: 'Amanda Wu', reason: 'Prescription reminder', time: '9:45 AM', status: 'Completed' },
+const scheduledCalls = [
+  { caller: 'Lydia Green', reason: 'Appointment confirmation', time: '11:00 AM', status: 'Scheduled' },
+  { caller: 'Carlos Diaz', reason: 'Reschedule request', time: '12:30 PM', status: 'In progress' },
+  { caller: 'Amanda Wu', reason: 'Reminder call', time: '3:15 PM', status: 'Scheduled' },
 ]
 
 const upcomingAppointments = [
   { patient: 'Hannah Lee', time: '11:30 AM', type: 'Annual physical', status: 'Confirmed' },
   { patient: 'Jordan Patel', time: '1:00 PM', type: 'Follow-up visit', status: 'Pending' },
   { patient: 'Maya Rivera', time: '2:15 PM', type: 'Telehealth check-in', status: 'Confirmed' },
+]
+
+const recentActivity = [
+  { title: 'Appointment confirmed', detail: 'Jordan Patel · Follow-up visit', time: '10 min ago' },
+  { title: 'Patient record created', detail: 'Maya Rivera · New intake', time: '1 hour ago' },
+  { title: 'Call completed', detail: 'Hannah Lee · Reminder call', time: '2 hours ago' },
 ]
 
 const DashboardPage = () => {
@@ -26,7 +32,7 @@ const DashboardPage = () => {
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Calls answered"
+          title="Calls handled"
           value="128"
           change="+12% from yesterday"
           icon={PhoneCall}
@@ -40,9 +46,9 @@ const DashboardPage = () => {
           accent="success"
         />
         <StatCard
-          title="Patient follow-ups"
-          value="9"
-          change="2 escalations pending"
+          title="Active patients"
+          value="128"
+          change="12 added this month"
           icon={UsersRound}
           accent="warning"
         />
@@ -59,13 +65,13 @@ const DashboardPage = () => {
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Live call queue</h2>
-              <p className="text-sm text-slate-600">AI triage for current inbound calls.</p>
+              <h2 className="text-lg font-semibold text-slate-900">Scheduled calls</h2>
+              <p className="text-sm text-slate-600">Upcoming automated and manual calls.</p>
             </div>
-            <StatusBadge label="3 active calls" variant="info" />
+            <StatusBadge label="3 scheduled" variant="info" />
           </div>
           <div className="mt-6 space-y-4">
-            {callQueue.map((call) => (
+            {scheduledCalls.map((call) => (
               <div
                 key={call.caller}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3"
@@ -81,7 +87,7 @@ const DashboardPage = () => {
                     variant={
                       call.status === 'Completed'
                         ? 'success'
-                        : call.status === 'Escalated'
+                        : call.status === 'In progress'
                           ? 'warning'
                           : 'info'
                     }
@@ -118,20 +124,21 @@ const DashboardPage = () => {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-slate-900">AI coverage insights</h2>
-                <p className="text-xs text-slate-500">Updated 5 minutes ago</p>
-              </div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-900">Recent activity</h2>
+              <StatusBadge label="Last 24 hours" variant="neutral" />
             </div>
-            <ul className="mt-4 space-y-3 text-sm text-slate-600">
-              <li>• 92% of calls resolved without staff intervention.</li>
-              <li>• Highest call volume predicted between 1 PM - 3 PM.</li>
-              <li>• Two patients requested same-day telehealth slots.</li>
-            </ul>
+            <div className="mt-4 space-y-4 text-sm text-slate-600">
+              {recentActivity.map((activity) => (
+                <div key={activity.title} className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{activity.title}</p>
+                    <p className="text-xs text-slate-500">{activity.detail}</p>
+                  </div>
+                  <span className="text-xs text-slate-500">{activity.time}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
