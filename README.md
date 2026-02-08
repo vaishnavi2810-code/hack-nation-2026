@@ -41,3 +41,9 @@ Preview the production build:
 cd frontend
 npm run preview
 ```
+
+## Documentation
+
+For Git workflow guidance, including how to merge multiple branches, see:
+
+- [GIT_WORKFLOW.md](./GIT_WORKFLOW.md) - Guide on merging two Git branches into a new branch
