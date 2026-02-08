@@ -36,6 +36,11 @@ const appointments = [
   },
 ]
 
+const notifyAction = (message: string) => {
+  console.log(message)
+  window.alert(message)
+}
+
 const AppointmentsPage = () => {
   return (
     <div className="space-y-6">
@@ -46,7 +51,11 @@ const AppointmentsPage = () => {
             Manage bookings, confirmations, and reschedules synced to Google Calendar.
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+        <button
+          type="button"
+          onClick={() => notifyAction('Create appointment via POST /appointments')}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+        >
           <Plus className="h-4 w-4" />
           New appointment
         </button>
@@ -90,16 +99,34 @@ const AppointmentsPage = () => {
               />
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                 {appointment.status === 'Pending' && (
-                  <button className="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-3 py-1 text-emerald-600 transition hover:border-emerald-300">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      notifyAction(`Confirm appointment via POST /appointments/${appointment.id}/confirm`)
+                    }
+                    className="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-3 py-1 text-emerald-600 transition hover:border-emerald-300"
+                  >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Confirm
                   </button>
                 )}
-                <button className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-primary hover:text-primary">
+                <button
+                  type="button"
+                  onClick={() =>
+                    notifyAction(`Update appointment via PUT /appointments/${appointment.id}`)
+                  }
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-primary hover:text-primary"
+                >
                   <PencilLine className="h-3.5 w-3.5" />
                   Edit
                 </button>
-                <button className="inline-flex items-center gap-1 rounded-full border border-rose-200 px-3 py-1 text-rose-500 transition hover:border-rose-300">
+                <button
+                  type="button"
+                  onClick={() =>
+                    notifyAction(`Cancel appointment via DELETE /appointments/${appointment.id}`)
+                  }
+                  className="inline-flex items-center gap-1 rounded-full border border-rose-200 px-3 py-1 text-rose-500 transition hover:border-rose-300"
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                   Cancel
                 </button>
