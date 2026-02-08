@@ -205,7 +205,7 @@ def get_user_info_from_google(access_token: str) -> Optional[Dict[str, Any]]:
 
         from googleapiclient.discovery import build
 
-        service = build("oauth2", "v1", credentials=credentials)
+        service = build(OAUTH_USERINFO_API_NAME, OAUTH_USERINFO_API_VERSION, credentials=credentials)
         user_info = service.userinfo().get().execute()
 
         return user_info

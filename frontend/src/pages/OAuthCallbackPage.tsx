@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiRequest, API_PATHS, HTTP, storeSessionTokens, type TokenResponse } from '../lib/api'
 
@@ -26,8 +26,14 @@ const DASHBOARD_ROUTE = '/app'
 const OAuthCallbackPage = () => {
   const navigate = useNavigate()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const hasStartedRef = useRef(false)
 
   useEffect(() => {
+    if (hasStartedRef.current) {
+      return
+    }
+    hasStartedRef.current = true
+
     const completeLogin = async () => {
       const params = new URLSearchParams(window.location.search)
       const error = params.get(PARAM_ERROR)
