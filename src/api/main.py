@@ -13,9 +13,10 @@ Main FastAPI application with endpoints for:
 import sys
 from datetime import datetime
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Depends, status, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Depends, status, Request, Query
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import HTTPBearer
+from urllib.parse import urlencode
 from starlette.authentication import AuthCredentials, SimpleUser
 from colorama import Fore, init
 
@@ -27,6 +28,26 @@ from src.calendar import service as calendar_service
 from src.integrations.twilio import TwilioWrapper, TwilioCallError
 
 init(autoreset=True)
+
+OAUTH_REDIRECT_PARAM_ACCESS_TOKEN = "access_token"
+OAUTH_REDIRECT_PARAM_REFRESH_TOKEN = "refresh_token"
+OAUTH_REDIRECT_PARAM_TOKEN_TYPE = "token_type"
+OAUTH_REDIRECT_PARAM_EXPIRES_IN = "expires_in"
+OAUTH_REDIRECT_PARAM_USER_ID = "user_id"
+OAUTH_REDIRECT_QUERY_SEPARATOR = "?"
+OAUTH_REDIRECT_APPEND_SEPARATOR = "&"
+OAUTH_TOKEN_TYPE_BEARER = "bearer"
+
+
+def build_oauth_redirect_url(base_url: str, payload: dict) -> str:
+    """Build OAuth redirect URL with encoded query parameters."""
+    query_string = urlencode(payload)
+    separator = (
+        OAUTH_REDIRECT_APPEND_SEPARATOR
+        if OAUTH_REDIRECT_QUERY_SEPARATOR in base_url
+        else OAUTH_REDIRECT_QUERY_SEPARATOR
+    )
+    return f"{base_url}{separator}{query_string}"
 
 # ============================================================================
 # APPLICATION SETUP
@@ -154,6 +175,19 @@ async def google_oauth_callback(
     request: models.CalendarCallback,
     db: Session = Depends(get_db)
 ):
+    return handle_google_oauth_callback(request.code, request.state, db)
+
+
+@app.get("/api/auth/google/callback")
+async def google_oauth_callback_get(
+    code: str = Query(...),
+    state: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    return handle_google_oauth_callback(code, state, db)
+
+
+def handle_google_oauth_callback(code: str, state: str, db: Session):
     """
     Handle Google OAuth callback.
 
@@ -178,8 +212,8 @@ async def google_oauth_callback(
     try:
         # Exchange Google auth code for OAuth token
         oauth_token = auth_service.exchange_oauth_code_for_token(
-            request.code,
-            request.state
+            code,
+            state
         )
 
         if not oauth_token:
@@ -222,13 +256,22 @@ async def google_oauth_callback(
                 detail="Failed to create session"
             )
 
-        return {
-            "access_token": session.access_token,
-            "refresh_token": session.refresh_token,
-            "token_type": "bearer",
-            "expires_in": config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            "user_id": user.id
+        response_payload = {
+            OAUTH_REDIRECT_PARAM_ACCESS_TOKEN: session.access_token,
+            OAUTH_REDIRECT_PARAM_REFRESH_TOKEN: session.refresh_token,
+            OAUTH_REDIRECT_PARAM_TOKEN_TYPE: OAUTH_TOKEN_TYPE_BEARER,
+            OAUTH_REDIRECT_PARAM_EXPIRES_IN: config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            OAUTH_REDIRECT_PARAM_USER_ID: user.id
         }
+
+        if config.FRONTEND_OAUTH_REDIRECT_URL:
+            redirect_url = build_oauth_redirect_url(
+                config.FRONTEND_OAUTH_REDIRECT_URL,
+                response_payload
+            )
+            return RedirectResponse(url=redirect_url)
+
+        return response_payload
 
     except HTTPException:
         raise
@@ -904,7 +947,7 @@ async def http_exception_handler(request, exc):
         content={
             "success": False,
             "error": exc.detail,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.utcnow().isoformat()
         }
     )
 
@@ -918,7 +961,7 @@ async def general_exception_handler(request, exc):
         content={
             "success": False,
             "error": "Internal server error",
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.utcnow().isoformat()
         }
     )
 

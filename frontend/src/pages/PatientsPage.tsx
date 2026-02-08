@@ -1,7 +1,19 @@
+import { useEffect, useState } from 'react'
 import { Eye, PencilLine, Plus, Search, Trash2, UsersRound } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
+import { apiRequest, API_PATHS, HTTP } from '../lib/api'
 
-const patients = [
+type PatientRecord = {
+  id: string
+  name: string
+  phone: string
+  email?: string | null
+  notes?: string | null
+  created_at?: string | null
+  last_appointment?: string | null
+}
+
+const FALLBACK_PATIENTS = [
   {
     id: 'pat-001',
     name: 'Hannah Lee',
@@ -32,12 +44,129 @@ const patients = [
   },
 ]
 
-const notifyAction = (message: string) => {
-  console.log(message)
-  window.alert(message)
-}
+const STATUS_LOADING = 'Loading patients...'
+const STATUS_LOAD_ERROR = 'Unable to load patients.'
+const STATUS_ACTION_ERROR = 'Unable to complete patient action.'
+
+const PROMPT_PATIENT_NAME = 'Enter patient name'
+const PROMPT_PATIENT_PHONE = 'Enter patient phone'
+const PROMPT_PATIENT_EMAIL = 'Enter patient email (optional)'
+const PROMPT_PATIENT_NOTES = 'Enter patient notes (optional)'
+
+const EMPTY_VALUE = '—'
+const DEFAULT_PATIENT_STATUS = 'Active care plan'
+const VIEW_PATIENT_SEPARATOR = ' · '
 
 const PatientsPage = () => {
+  const [patients, setPatients] = useState(FALLBACK_PATIENTS)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+
+  const loadPatients = async () => {
+    setStatusMessage(STATUS_LOADING)
+    const result = await apiRequest<PatientRecord[]>(API_PATHS.PATIENTS, { method: HTTP.GET })
+
+    if (result.error) {
+      setStatusMessage(STATUS_LOAD_ERROR)
+      return
+    }
+
+    if (result.data) {
+      const mappedPatients = result.data.map((patient) => ({
+        id: patient.id,
+        name: patient.name,
+        lastVisit: patient.last_appointment ?? EMPTY_VALUE,
+        nextStep: patient.notes ?? EMPTY_VALUE,
+        status: DEFAULT_PATIENT_STATUS,
+      }))
+      setPatients(mappedPatients)
+    }
+    setStatusMessage(null)
+  }
+
+  useEffect(() => {
+    loadPatients()
+  }, [])
+
+  const handleCreatePatient = async () => {
+    const name = window.prompt(PROMPT_PATIENT_NAME)
+    if (!name) {
+      return
+    }
+    const phone = window.prompt(PROMPT_PATIENT_PHONE)
+    if (!phone) {
+      return
+    }
+    const email = window.prompt(PROMPT_PATIENT_EMAIL) ?? undefined
+    const notes = window.prompt(PROMPT_PATIENT_NOTES) ?? undefined
+
+    const result = await apiRequest(API_PATHS.PATIENTS, {
+      method: HTTP.POST,
+      body: {
+        name,
+        phone,
+        email,
+        notes,
+      },
+    })
+
+    if (result.error) {
+      setStatusMessage(STATUS_ACTION_ERROR)
+      return
+    }
+
+    loadPatients()
+  }
+
+  const handleViewPatient = async (patientId: string) => {
+    const result = await apiRequest<PatientRecord>(API_PATHS.PATIENT_BY_ID(patientId), {
+      method: HTTP.GET,
+    })
+
+    if (result.error || !result.data) {
+      setStatusMessage(STATUS_ACTION_ERROR)
+      return
+    }
+
+    window.alert(`${result.data.name}${VIEW_PATIENT_SEPARATOR}${result.data.phone}`)
+  }
+
+  const handleUpdatePatient = async (patientId: string) => {
+    const name = window.prompt(PROMPT_PATIENT_NAME)
+    const phone = window.prompt(PROMPT_PATIENT_PHONE)
+    const email = window.prompt(PROMPT_PATIENT_EMAIL)
+    const notes = window.prompt(PROMPT_PATIENT_NOTES)
+
+    const result = await apiRequest(API_PATHS.PATIENT_BY_ID(patientId), {
+      method: HTTP.PUT,
+      body: {
+        name: name || undefined,
+        phone: phone || undefined,
+        email: email || undefined,
+        notes: notes || undefined,
+      },
+    })
+
+    if (result.error) {
+      setStatusMessage(STATUS_ACTION_ERROR)
+      return
+    }
+
+    loadPatients()
+  }
+
+  const handleDeletePatient = async (patientId: string) => {
+    const result = await apiRequest(API_PATHS.PATIENT_BY_ID(patientId), {
+      method: HTTP.DELETE,
+    })
+
+    if (result.error) {
+      setStatusMessage(STATUS_ACTION_ERROR)
+      return
+    }
+
+    loadPatients()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -49,13 +178,15 @@ const PatientsPage = () => {
         </div>
         <button
           type="button"
-          onClick={() => notifyAction('Create patient via POST /patients')}
+          onClick={handleCreatePatient}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
           Add patient
         </button>
       </div>
+
+      {statusMessage && <StatusBadge label={statusMessage} variant="info" />}
 
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-soft">
         <Search className="h-4 w-4 text-slate-400" />
@@ -100,9 +231,7 @@ const PatientsPage = () => {
                     <div className="flex items-center gap-3 text-xs font-semibold text-slate-600">
                       <button
                         type="button"
-                        onClick={() =>
-                          notifyAction(`Fetch patient via GET /patients/${patient.id}`)
-                        }
+                        onClick={() => handleViewPatient(patient.id)}
                         className="inline-flex items-center gap-1 text-primary"
                       >
                         <Eye className="h-3.5 w-3.5" />
@@ -110,9 +239,7 @@ const PatientsPage = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
-                          notifyAction(`Update patient via PUT /patients/${patient.id}`)
-                        }
+                        onClick={() => handleUpdatePatient(patient.id)}
                         className="inline-flex items-center gap-1 text-slate-500"
                       >
                         <PencilLine className="h-3.5 w-3.5" />
@@ -120,9 +247,7 @@ const PatientsPage = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
-                          notifyAction(`Delete patient via DELETE /patients/${patient.id}`)
-                        }
+                        onClick={() => handleDeletePatient(patient.id)}
                         className="inline-flex items-center gap-1 text-rose-500"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
