@@ -10,8 +10,10 @@ const LoginPage = () => {
   const BUTTON_LOADING_LABEL = 'Redirecting...'
   const AUTH_ERROR_MESSAGE = 'Unable to start Google sign-in.'
   const PAGE_TITLE = 'Doctor login'
-  const PAGE_SUBTITLE = 'Use your Google account to access the clinic dashboard.'
-  const SUPPORT_TEXT = 'Google login is required for secure clinic access.'
+  const PAGE_SUBTITLE = 'Use your Google account to access appointment summaries.'
+  const SUPPORT_TEXT = 'Google login is required for secure doctor access.'
+  const ACCESS_NOTE_TITLE = 'Doctor-only access'
+  const ACCESS_NOTE_BODY = 'Contact your clinic administrator if you need a login.'
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
@@ -60,11 +62,8 @@ const LoginPage = () => {
         </div>
 
         <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white/60 px-6 py-4 text-xs text-slate-500">
-          Need an account?{' '}
-          <Link to="/signup" className="font-semibold text-primary">
-            Create one
-          </Link>{' '}
-          to access your clinic workspace.
+          <p className="font-semibold text-slate-700">{ACCESS_NOTE_TITLE}</p>
+          <p className="mt-1">{ACCESS_NOTE_BODY}</p>
         </div>
       </div>
     </div>

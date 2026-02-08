@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogOut, Search } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import { apiRequest, API_PATHS, clearSessionTokens, HTTP } from '../lib/api'
@@ -8,6 +8,8 @@ const AppLayout = () => {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const navigate = useNavigate()
 
+  const HEADER_TITLE = 'Appointment summary'
+  const HEADER_SUBTITLE = 'Review upcoming visits and appointment status.'
   const LOGOUT_ERROR_MESSAGE = 'Unable to log out.'
   const LABEL_SIGN_OUT = 'Sign out'
   const LABEL_SIGNING_OUT = 'Signing out'
@@ -36,18 +38,10 @@ const AppLayout = () => {
         <div className="flex min-h-screen flex-1 flex-col">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-4">
             <div>
-              <p className="text-sm font-semibold text-slate-900">Welcome back</p>
-              <p className="text-xs text-slate-500">Clinic operations overview for today.</p>
+              <p className="text-sm font-semibold text-slate-900">{HEADER_TITLE}</p>
+              <p className="text-xs text-slate-500">{HEADER_SUBTITLE}</p>
             </div>
-            <div className="flex flex-1 items-center justify-end gap-3">
-              <div className="relative w-full max-w-xs">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="search"
-                  placeholder="Search patients, appointments, or calls"
-                  className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 outline-none transition focus:border-primary focus:bg-white"
-                />
-              </div>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleSignOut}

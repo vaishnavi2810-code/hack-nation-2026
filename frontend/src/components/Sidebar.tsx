@@ -1,24 +1,14 @@
 import { NavLink } from 'react-router-dom'
-import {
-  CalendarCheck,
-  CalendarDays,
-  Code2,
-  HeartPulse,
-  LayoutDashboard,
-  PhoneCall,
-  Settings,
-  UsersRound,
-} from 'lucide-react'
+import { CalendarDays, HeartPulse } from 'lucide-react'
 
-const navItems = [
-  { label: 'Dashboard', to: '/app', icon: LayoutDashboard },
-  { label: 'My Patients', to: '/app/patients', icon: UsersRound },
-  { label: 'Appointments', to: '/app/appointments', icon: CalendarDays },
-  { label: 'Calls', to: '/app/calls', icon: PhoneCall },
-  { label: 'API Reference', to: '/app/api-reference', icon: Code2 },
-  { label: 'Calendar', to: '/connect-calendar', icon: CalendarCheck },
-  { label: 'Settings', to: '/app/settings', icon: Settings },
-]
+const ROUTE_APP = '/app'
+const BRAND_NAME = 'MomMode'
+const BRAND_SUBTITLE = 'Doctor Portal'
+const NAV_LABEL_SUMMARY = 'Appointment summary'
+const FOOTER_TITLE = 'Doctor workspace'
+const FOOTER_SUBTITLE = 'Login to review appointment summaries.'
+
+const navItems = [{ label: NAV_LABEL_SUMMARY, to: ROUTE_APP, icon: CalendarDays }]
 
 const Sidebar = () => {
   return (
@@ -28,8 +18,8 @@ const Sidebar = () => {
           <HeartPulse className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-lg font-semibold text-slate-900">MomMode</p>
-          <p className="text-xs text-slate-500">Doctor Portal</p>
+          <p className="text-lg font-semibold text-slate-900">{BRAND_NAME}</p>
+          <p className="text-xs text-slate-500">{BRAND_SUBTITLE}</p>
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-4 py-6">
@@ -56,8 +46,8 @@ const Sidebar = () => {
         })}
       </nav>
       <div className="border-t border-slate-200 px-6 py-4 text-xs text-slate-500">
-        <p className="font-semibold text-slate-700">Secure clinic workspace</p>
-        <p>Doctor-only workflows, no patient-facing access.</p>
+        <p className="font-semibold text-slate-700">{FOOTER_TITLE}</p>
+        <p>{FOOTER_SUBTITLE}</p>
       </div>
     </aside>
   )

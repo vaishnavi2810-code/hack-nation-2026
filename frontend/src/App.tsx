@@ -1,35 +1,26 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './layouts/AppLayout'
-import AppointmentsPage from './pages/AppointmentsPage'
-import CalendarConnectPage from './pages/CalendarConnectPage'
-import CallHistoryPage from './pages/CallHistoryPage'
-import DashboardPage from './pages/DashboardPage'
-import ApiReferencePage from './pages/ApiReferencePage'
-import SignupPage from './pages/SignupPage'
-import LandingPage from './pages/LandingPage'
+import AppointmentSummaryPage from './pages/AppointmentSummaryPage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
 import OAuthCallbackPage from './pages/OAuthCallbackPage'
-import PatientsPage from './pages/PatientsPage'
-import SettingsPage from './pages/SettingsPage'
+
+const ROUTE_ROOT = '/'
+const ROUTE_LOGIN = '/login'
+const ROUTE_APP = '/app'
+const ROUTE_OAUTH_CALLBACK = '/oauth/callback'
+const ROUTE_FALLBACK = '*'
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
-      <Route path="/connect-calendar" element={<CalendarConnectPage />} />
-      <Route path="/app" element={<AppLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="patients" element={<PatientsPage />} />
-        <Route path="appointments" element={<AppointmentsPage />} />
-        <Route path="calls" element={<CallHistoryPage />} />
-        <Route path="api-reference" element={<ApiReferencePage />} />
-        <Route path="settings" element={<SettingsPage />} />
+      <Route path={ROUTE_ROOT} element={<Navigate to={ROUTE_LOGIN} replace />} />
+      <Route path={ROUTE_LOGIN} element={<LoginPage />} />
+      <Route path={ROUTE_OAUTH_CALLBACK} element={<OAuthCallbackPage />} />
+      <Route path={ROUTE_APP} element={<AppLayout />}>
+        <Route index element={<AppointmentSummaryPage />} />
       </Route>
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path={ROUTE_FALLBACK} element={<NotFoundPage />} />
     </Routes>
   )
 }
