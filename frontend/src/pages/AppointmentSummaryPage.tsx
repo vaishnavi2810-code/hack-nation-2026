@@ -49,6 +49,10 @@ const STATUS_MISSING_TOKEN = 'Add access token to load appointment summary.'
 const STATUS_LOAD_ERROR = 'Unable to load appointment summary.'
 const REFRESH_LABEL = 'Refresh summary'
 const REFRESHING_LABEL = 'Refreshing...'
+const QUERY_SEPARATOR = '?'
+const QUERY_KEY_VALUE_SEPARATOR = '='
+const CALENDAR_DATE_QUERY_PARAM = 'date'
+const CALENDAR_DATE_TODAY = 'today'
 
 const UPCOMING_SECTION_TITLE = 'Upcoming appointments'
 const UPCOMING_SECTION_SUBTITLE = 'Next scheduled visits for your clinic.'
@@ -178,6 +182,8 @@ const getStatusVariant = (status: string) => STATUS_VARIANTS[status] ?? DEFAULT_
 
 const formatUpcomingBadge = (count: number) => `${count} ${UPCOMING_BADGE_SUFFIX}`
 
+const CALENDAR_APPOINTMENTS_PATH = `${API_PATHS.CALENDAR_APPOINTMENTS}${QUERY_SEPARATOR}${CALENDAR_DATE_QUERY_PARAM}${QUERY_KEY_VALUE_SEPARATOR}${CALENDAR_DATE_TODAY}`
+
 const AppointmentSummaryPage = () => {
   const [appointments, setAppointments] = useState<AppointmentRecord[]>([])
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -186,7 +192,7 @@ const AppointmentSummaryPage = () => {
   const loadAppointments = useCallback(async () => {
     setIsLoading(true)
     setStatusMessage(STATUS_LOADING)
-    const result = await apiRequest<AppointmentRecord[]>(API_PATHS.APPOINTMENTS, {
+    const result = await apiRequest<AppointmentRecord[]>(CALENDAR_APPOINTMENTS_PATH, {
       method: HTTP.GET,
       requiresAuth: true,
     })

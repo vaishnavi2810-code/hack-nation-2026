@@ -14,6 +14,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from jose import JWTError, jwt
+from google.oauth2.credentials import Credentials
 from sqlalchemy.orm import Session
 from src import config
 from src import database
@@ -26,6 +27,13 @@ OAUTH_USERINFO_API_VERSION = "v2"
 OAUTH_REDIRECT_PATH = "/api/auth/google/callback"
 OAUTH_URL_TRAILING_SLASH = "/"
 OAUTH_SCOPES = config.GOOGLE_OAUTH_SCOPES
+TOKEN_FIELD_ACCESS = "access_token"
+TOKEN_FIELD_REFRESH = "refresh_token"
+TOKEN_FIELD_EXPIRY = "expiry"
+TOKEN_FIELD_TOKEN_URI = "token_uri"
+TOKEN_FIELD_CLIENT_ID = "client_id"
+TOKEN_FIELD_CLIENT_SECRET = "client_secret"
+TOKEN_FIELD_SCOPES = "scopes"
 
 
 def resolve_oauth_redirect_uri() -> str:
@@ -34,6 +42,34 @@ def resolve_oauth_redirect_uri() -> str:
         return config.FRONTEND_OAUTH_REDIRECT_URL
     api_base = config.API_BASE_URL.rstrip(OAUTH_URL_TRAILING_SLASH)
     return f"{api_base}{OAUTH_REDIRECT_PATH}"
+
+
+def build_google_credentials(token_data: Dict[str, Any]) -> Optional[Credentials]:
+    """Build Google OAuth credentials from stored token data."""
+    if not token_data:
+        return None
+
+    access_token = token_data.get(TOKEN_FIELD_ACCESS)
+    if not access_token:
+        return None
+
+    expiry_value = token_data.get(TOKEN_FIELD_EXPIRY)
+    expiry = None
+    if isinstance(expiry_value, str) and expiry_value:
+        try:
+            expiry = datetime.fromisoformat(expiry_value)
+        except ValueError:
+            expiry = None
+
+    return Credentials(
+        token=access_token,
+        refresh_token=token_data.get(TOKEN_FIELD_REFRESH),
+        token_uri=token_data.get(TOKEN_FIELD_TOKEN_URI),
+        client_id=token_data.get(TOKEN_FIELD_CLIENT_ID),
+        client_secret=token_data.get(TOKEN_FIELD_CLIENT_SECRET),
+        scopes=token_data.get(TOKEN_FIELD_SCOPES),
+        expiry=expiry
+    )
 
 # ============================================================================
 # JWT TOKEN MANAGEMENT

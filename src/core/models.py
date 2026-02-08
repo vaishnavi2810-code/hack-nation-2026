@@ -168,6 +168,17 @@ class AppointmentResponse(BaseModel):
         from_attributes = True
 
 
+class CalendarAppointmentRecord(BaseModel):
+    """Appointment record mapped from Google Calendar event."""
+    id: str
+    patient_id: Optional[str] = None
+    patient_name: str
+    date: str
+    time: str
+    type: str
+    status: str
+
+
 class UpcomingAppointmentsResponse(BaseModel):
     """Response with list of upcoming appointments"""
     count: int

@@ -133,6 +133,11 @@ GOOGLE_CREDENTIALS_PATH = get_optional_var(
     "GOOGLE_CREDENTIALS_PATH",
     DEFAULT_GOOGLE_CREDENTIALS_PATH
 )
+DEFAULT_GOOGLE_CALENDAR_ID = "primary"
+GOOGLE_CALENDAR_ID = get_optional_var(
+    "GOOGLE_CALENDAR_ID",
+    DEFAULT_GOOGLE_CALENDAR_ID
+)
 DEFAULT_GOOGLE_OAUTH_SCOPES = (
     "https://www.googleapis.com/auth/calendar,"
     "openid,"
@@ -149,6 +154,13 @@ GOOGLE_OAUTH_SCOPES = [
     for scope in GOOGLE_OAUTH_SCOPES_RAW.split(GOOGLE_OAUTH_SCOPES_SEPARATOR)
     if scope.strip()
 ]
+
+DEFAULT_CALENDAR_MAX_RESULTS = "250"
+CALENDAR_MAX_RESULTS = int(get_optional_var("CALENDAR_MAX_RESULTS", DEFAULT_CALENDAR_MAX_RESULTS))
+DEFAULT_APPOINTMENTS_LOOKAHEAD_DAYS = "1"
+APPOINTMENTS_LOOKAHEAD_DAYS = int(
+    get_optional_var("APPOINTMENTS_LOOKAHEAD_DAYS", DEFAULT_APPOINTMENTS_LOOKAHEAD_DAYS)
+)
 
 
 # ============================================================================

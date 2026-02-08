@@ -76,6 +76,7 @@ export const API_PATHS = {
   CALENDAR_STATUS: '/api/calendar/status',
   CALENDAR_DISCONNECT: '/api/calendar/disconnect',
   CALENDAR_CHECK_AVAILABILITY: '/api/calendar/check-availability',
+  CALENDAR_APPOINTMENTS: '/api/calendar/appointments',
   PATIENTS: '/api/patients',
   PATIENT_BY_ID: (patientId: string) => `/api/patients/${patientId}`,
   APPOINTMENTS: '/api/appointments',
@@ -96,6 +97,7 @@ const AUTH_REQUIRED_PATHS = new Set<string>([
   API_PATHS.CALENDAR_STATUS,
   API_PATHS.CALENDAR_DISCONNECT,
   API_PATHS.CALENDAR_CHECK_AVAILABILITY,
+  API_PATHS.CALENDAR_APPOINTMENTS,
   API_PATHS.APPOINTMENTS,
   API_PATHS.APPOINTMENTS_UPCOMING,
 ])
