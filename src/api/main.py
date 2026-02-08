@@ -22,7 +22,7 @@ from colorama import Fore, init
 
 from src import config
 from src.core import models
-from src.database import models as db_models, SessionLocal, init_db, get_db, Session
+from src.database import models as database, SessionLocal, init_db, get_db, Session
 from src.auth import service as auth_service
 from src.calendar import service as calendar_service
 from src.integrations.twilio import TwilioWrapper, TwilioCallError
@@ -408,13 +408,10 @@ async def check_availability_endpoint(
     Check available appointment slots for a given date.
 
     Backend Proxy Pattern in Action:
-    - ElevenLabs agent calls this with user_id in JWT token
+    - Frontend calls this with user_id in JWT token
     - We look up user's OAuth token from database
     - Call Calendar MCP with that token to check availability
-    - Return available slots to agent
-
-    This endpoint is called by the ElevenLabs agent during the booking conversation.
-    The agent passes the date and we return available time slots.
+    - Return available slots to frontend
 
     Args:
         date: Date to check (YYYY-MM-DD or natural language like "next Tuesday")
@@ -611,14 +608,14 @@ async def create_appointment(
     Create new appointment.
 
     Backend Proxy Pattern in Action:
-    - ElevenLabs agent calls this after patient confirms booking
+    - Frontend calls this with user_id in JWT token
     - We look up user's OAuth token from database
     - Create Calendar event via Calendar MCP with that token
     - Store appointment in database
     - Send SMS confirmation via Twilio
-    - Return confirmation to agent
+    - Return confirmation to frontend
 
-    Called by ElevenLabs agent tool: book_appointment
+    Called by frontend appointment booking form
     """
     try:
         # For inbound calls from agent, patient details are in request
@@ -690,6 +687,7 @@ async def update_appointment(appointment_id: str, request: models.AppointmentUpd
     """
     Update appointment
 
+    TODO: Add JWT authentication
     TODO: Update Google Calendar event
     TODO: Update database
     """
@@ -714,6 +712,7 @@ async def delete_appointment(appointment_id: str):
     """
     Delete/cancel appointment
 
+    TODO: Add JWT authentication
     TODO: Delete from Google Calendar
     TODO: Update database
     TODO: Notify patient via SMS
@@ -965,6 +964,387 @@ async def general_exception_handler(request, exc):
             "timestamp": datetime.utcnow().isoformat()
         }
     )
+
+
+# ============================================================================
+# ELEVENLABS AGENT ENDPOINTS (/api/agent)
+# ============================================================================
+# These endpoints are specifically for the ElevenLabs voice agent.
+# They accept phone numbers instead of JWT, create patients dynamically,
+# and return voice-appropriate responses with verbose logging.
+
+class AgentCheckAvailabilityRequest(models.BaseModel):
+    date: str
+
+@app.post("/api/agent/calendar/availability")
+async def agent_check_availability(
+    request: AgentCheckAvailabilityRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Check available appointment slots for a given date.
+
+    Called by ElevenLabs agent to show available times to patients.
+    No authentication required (single-tenant prototype).
+
+    Args:
+        request: AgentCheckAvailabilityRequest with date
+
+    Returns:
+        available_slots: List of available times
+    """
+    date = request.date
+    print(f"{Fore.CYAN}[AGENT API] check_availability called with date={date}")
+
+    try:
+        # Use hardcoded doctor_id for single-tenant
+        doctor_id = "doctor_001"
+
+        result = calendar_service.check_availability(
+            user_id=doctor_id,
+            db=db,
+            date=date
+        )
+
+        print(f"{Fore.GREEN}[AGENT API] ✅ check_availability returned: {len(result.get('available_slots', []))} slots")
+        return result
+
+    except Exception as e:
+        print(f"{Fore.RED}[AGENT API] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "date": date,
+            "error": str(e)
+        }
+
+
+class AgentListAppointmentsRequest(models.BaseModel):
+    phone_number: str
+
+@app.post("/api/agent/appointments/list")
+async def agent_list_appointments(request: AgentListAppointmentsRequest, db: Session = Depends(get_db)):
+    phone_number = request.phone_number
+    """
+    List all appointments for a patient by phone number.
+
+    Called by ElevenLabs agent to retrieve patient's appointments.
+    Matches patients by phone number.
+
+    Args:
+        phone_number: Patient's phone number (E.164 format)
+
+    Returns:
+        appointments: List of patient's appointments
+    """
+    print(f"{Fore.CYAN}[AGENT API] list_appointments called for phone={phone_number}")
+
+    try:
+        # Find patient by phone number
+        patient = db.query(database.Patient).filter(
+            database.Patient.phone == phone_number
+        ).first()
+
+        if not patient:
+            print(f"{Fore.YELLOW}[AGENT API] ⚠️  Patient not found for phone={phone_number}")
+            return {
+                "success": True,
+                "appointments": [],
+                "message": f"No appointments found for this number"
+            }
+
+        print(f"{Fore.GREEN}[AGENT API] ✅ Found patient: {patient.id} ({patient.name})")
+
+        # Get patient's appointments
+        appointments = db.query(database.Appointment).filter(
+            database.Appointment.patient_id == patient.id,
+            database.Appointment.status.in_(["scheduled", "confirmed"])
+        ).order_by(database.Appointment.date, database.Appointment.time).all()
+
+        print(f"{Fore.GREEN}[AGENT API] ✅ Found {len(appointments)} appointments")
+
+        return {
+            "success": True,
+            "patient_name": patient.name,
+            "appointments": [
+                {
+                    "id": appt.id,
+                    "date": appt.date,
+                    "time": appt.time,
+                    "type": appt.type,
+                    "status": appt.status
+                }
+                for appt in appointments
+            ]
+        }
+
+    except Exception as e:
+        print(f"{Fore.RED}[AGENT API] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+class AgentScheduleAppointmentRequest(models.BaseModel):
+    phone_number: str
+    patient_name: str
+    date: str
+    time: str
+    appointment_type: str = "General Checkup"
+
+@app.post("/api/agent/appointments/schedule")
+async def agent_schedule_appointment(
+    request: AgentScheduleAppointmentRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Schedule a new appointment for a patient.
+
+    Called by ElevenLabs agent after patient confirms booking.
+    Creates patient if they don't exist.
+
+    Args:
+        request: AgentScheduleAppointmentRequest with patient and appointment details
+
+    Returns:
+        appointment_id: ID of created appointment
+        confirmation_number: Human-readable confirmation
+    """
+    phone_number = request.phone_number
+    patient_name = request.patient_name
+    date = request.date
+    time = request.time
+    appointment_type = request.appointment_type
+
+    print(f"{Fore.CYAN}[AGENT API] schedule_appointment called for phone={phone_number}, date={date}, time={time}")
+
+    try:
+        # Use hardcoded doctor_id for single-tenant
+        doctor_id = "doctor_001"
+
+        # Find or create patient
+        patient = db.query(database.Patient).filter(
+            database.Patient.phone == phone_number
+        ).first()
+
+        if not patient:
+            print(f"{Fore.CYAN}[AGENT API] Creating new patient: {patient_name}")
+            import uuid
+            patient_id = f"pat_{uuid.uuid4().hex[:12]}"
+            patient = database.Patient(
+                id=patient_id,
+                doctor_id=doctor_id,
+                name=patient_name,
+                phone=phone_number
+            )
+            db.add(patient)
+            db.flush()
+            print(f"{Fore.GREEN}[AGENT API] ✅ Created patient: {patient_id}")
+        else:
+            print(f"{Fore.GREEN}[AGENT API] ✅ Found existing patient: {patient.id}")
+
+        # Book appointment using calendar service
+        result = calendar_service.book_appointment(
+            user_id=doctor_id,
+            db=db,
+            patient_name=patient.name,
+            patient_phone=patient.phone,
+            date=date,
+            time=time,
+            appointment_type=appointment_type
+        )
+
+        if not result["success"]:
+            print(f"{Fore.RED}[AGENT API] ❌ booking failed: {result.get('error')}")
+            return {
+                "success": False,
+                "error": result.get("error", "Failed to book appointment")
+            }
+
+        print(f"{Fore.GREEN}[AGENT API] ✅ Appointment created: {result['appointment_id']}")
+        return result
+
+    except Exception as e:
+        print(f"{Fore.RED}[AGENT API] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+class AgentRescheduleAppointmentRequest(models.BaseModel):
+    phone_number: str
+    appointment_id: str
+    new_date: str
+    new_time: str
+
+@app.post("/api/agent/appointments/reschedule")
+async def agent_reschedule_appointment(
+    request: AgentRescheduleAppointmentRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Reschedule an existing appointment.
+
+    Called by ElevenLabs agent when patient wants to change their appointment.
+
+    Args:
+        request: AgentRescheduleAppointmentRequest with reschedule details
+
+    Returns:
+        appointment_id: Updated appointment ID
+        message: Confirmation message
+    """
+    phone_number = request.phone_number
+    appointment_id = request.appointment_id
+    new_date = request.new_date
+    new_time = request.new_time
+
+    print(f"{Fore.CYAN}[AGENT API] reschedule_appointment called for phone={phone_number}, appt={appointment_id}")
+    print(f"{Fore.CYAN}[AGENT API]   New date/time: {new_date} {new_time}")
+
+    try:
+        # Verify patient owns this appointment
+        patient = db.query(database.Patient).filter(
+            database.Patient.phone == phone_number
+        ).first()
+
+        if not patient:
+            print(f"{Fore.RED}[AGENT API] ❌ Patient not found")
+            return {
+                "success": False,
+                "error": "Patient not found"
+            }
+
+        appointment = db.query(database.Appointment).filter(
+            database.Appointment.id == appointment_id,
+            database.Appointment.patient_id == patient.id
+        ).first()
+
+        if not appointment:
+            print(f"{Fore.RED}[AGENT API] ❌ Appointment not found or doesn't belong to patient")
+            return {
+                "success": False,
+                "error": "Appointment not found"
+            }
+
+        print(f"{Fore.GREEN}[AGENT API] ✅ Found appointment: {appointment.id}")
+
+        # Update appointment
+        old_date = appointment.date
+        old_time = appointment.time
+
+        appointment.date = new_date
+        appointment.time = new_time
+        appointment.updated_at = datetime.utcnow()
+        db.commit()
+
+        print(f"{Fore.GREEN}[AGENT API] ✅ Rescheduled from {old_date} {old_time} to {new_date} {new_time}")
+
+        return {
+            "success": True,
+            "appointment_id": appointment_id,
+            "message": f"Your appointment has been rescheduled to {new_date} at {new_time}"
+        }
+
+    except Exception as e:
+        print(f"{Fore.RED}[AGENT API] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+class AgentCancelAppointmentRequest(models.BaseModel):
+    phone_number: str
+    appointment_id: str
+
+@app.post("/api/agent/appointments/cancel")
+async def agent_cancel_appointment(
+    request: AgentCancelAppointmentRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Cancel an existing appointment.
+
+    Called by ElevenLabs agent when patient wants to cancel.
+
+    Args:
+        request: AgentCancelAppointmentRequest with cancellation details
+
+    Returns:
+        success: True if cancelled
+        message: Confirmation message
+    """
+    phone_number = request.phone_number
+    appointment_id = request.appointment_id
+
+    print(f"{Fore.CYAN}[AGENT API] cancel_appointment called for phone={phone_number}, appt={appointment_id}")
+
+    try:
+        # Verify patient owns this appointment
+        patient = db.query(database.Patient).filter(
+            database.Patient.phone == phone_number
+        ).first()
+
+        if not patient:
+            print(f"{Fore.RED}[AGENT API] ❌ Patient not found")
+            return {
+                "success": False,
+                "error": "Patient not found"
+            }
+
+        appointment = db.query(database.Appointment).filter(
+            database.Appointment.id == appointment_id,
+            database.Appointment.patient_id == patient.id
+        ).first()
+
+        if not appointment:
+            print(f"{Fore.RED}[AGENT API] ❌ Appointment not found or doesn't belong to patient")
+            return {
+                "success": False,
+                "error": "Appointment not found"
+            }
+
+        print(f"{Fore.GREEN}[AGENT API] ✅ Found appointment: {appointment.id}")
+
+        # Cancel appointment using calendar service
+        result = calendar_service.cancel_appointment(
+            user_id="doctor_001",
+            db=db,
+            appointment_id=appointment_id
+        )
+
+        if not result["success"]:
+            print(f"{Fore.RED}[AGENT API] ❌ Cancellation failed: {result.get('error')}")
+            return result
+
+        print(f"{Fore.GREEN}[AGENT API] ✅ Appointment cancelled")
+
+        return {
+            "success": True,
+            "message": f"Your appointment on {appointment.date} at {appointment.time} has been cancelled"
+        }
+
+    except Exception as e:
+        print(f"{Fore.RED}[AGENT API] ❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        db.rollback()
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 # ============================================================================
