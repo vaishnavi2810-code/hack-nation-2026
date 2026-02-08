@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 from colorama import Fore, init
 
 import config
@@ -27,6 +28,14 @@ import calendar_service
 from twilio_wrapper import TwilioWrapper, TwilioCallError
 
 init(autoreset=True)
+
+# ============================================================================
+# CORS CONFIG
+# ============================================================================
+
+CORS_ALLOW_METHODS = ["*"]
+CORS_ALLOW_HEADERS = ["*"]
+CORS_ALLOW_CREDENTIALS = True
 
 # ============================================================================
 # APPLICATION SETUP
@@ -53,6 +62,15 @@ app = FastAPI(
     version=config.APP_VERSION,
     debug=config.DEBUG
 )
+
+if config.CORS_ALLOWED_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=config.CORS_ALLOWED_ORIGINS,
+        allow_credentials=CORS_ALLOW_CREDENTIALS,
+        allow_methods=CORS_ALLOW_METHODS,
+        allow_headers=CORS_ALLOW_HEADERS,
+    )
 
 # Initialize Twilio wrapper
 try:

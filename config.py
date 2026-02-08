@@ -153,6 +153,15 @@ LOG_LEVEL = get_optional_var("LOG_LEVEL", "INFO")
 API_BASE_URL = get_optional_var("API_BASE_URL", "http://localhost:8000")
 
 # ============================================================================
+# CORS CONFIG
+# ============================================================================
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in get_optional_var("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+# ============================================================================
 # WEBHOOK CONFIG
 # ============================================================================
 WEBHOOK_URL = validate_required_var(
