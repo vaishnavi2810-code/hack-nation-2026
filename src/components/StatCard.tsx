@@ -1,4 +1,5 @@
 import type { ComponentType, SVGProps } from 'react'
+import type { LucideIcon } from 'lucide-react'
 
 type StatCardProps = {
   title: string
