@@ -1,7 +1,19 @@
+import { useEffect, useState } from 'react'
 import { CalendarDays, CheckCircle2, MapPin, PencilLine, Plus, Trash2, Video } from 'lucide-react'
 import StatusBadge from '../components/StatusBadge'
+import { apiRequest, API_PATHS, ERRORS, HTTP } from '../lib/api'
 
-const appointments = [
+type AppointmentRecord = {
+  id: string
+  patient_id: string
+  patient_name: string
+  date: string
+  time: string
+  type: string
+  status: string
+}
+
+const FALLBACK_APPOINTMENTS = [
   {
     id: 'apt-001',
     patient: 'Hannah Lee',
@@ -36,12 +48,155 @@ const appointments = [
   },
 ]
 
-const notifyAction = (message: string) => {
-  console.log(message)
-  window.alert(message)
+const STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Scheduled',
+  confirmed: 'Confirmed',
+  cancelled: 'Cancelled',
+  completed: 'Completed',
+  no_show: 'No show',
 }
 
+const CHANNEL_TELEHEALTH_KEYWORD = 'tele'
+const STATUS_LABEL_PENDING = 'Pending'
+const CHANNEL_LABEL_TELEHEALTH = 'Telehealth'
+const CHANNEL_LABEL_IN_PERSON = 'In-person'
+
+const STATUS_LOADING = 'Loading appointments...'
+const STATUS_MISSING_TOKEN = 'Add access token to load appointments.'
+const STATUS_LOAD_ERROR = 'Unable to load appointments.'
+const STATUS_ACTION_ERROR = 'Unable to complete appointment action.'
+
+const PROMPT_PATIENT_ID = 'Enter patient ID'
+const PROMPT_DATE = 'Enter appointment date (YYYY-MM-DD)'
+const PROMPT_TIME = 'Enter appointment time (HH:MM)'
+const PROMPT_TYPE = 'Enter appointment type'
+
+const DEFAULT_APPOINTMENT_TYPE = 'General Checkup'
+
 const AppointmentsPage = () => {
+  const [appointments, setAppointments] = useState(FALLBACK_APPOINTMENTS)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+
+  const mapAppointments = (records: AppointmentRecord[]) =>
+    records.map((record) => ({
+      id: record.id,
+      patient: record.patient_name,
+      time: `${record.date} · ${record.time}`,
+      type: record.type,
+      channel: record.type?.toLowerCase().includes(CHANNEL_TELEHEALTH_KEYWORD)
+        ? CHANNEL_LABEL_TELEHEALTH
+        : CHANNEL_LABEL_IN_PERSON,
+      status: STATUS_LABELS[record.status] ?? record.status,
+    }))
+
+  const loadAppointments = async () => {
+    setStatusMessage(STATUS_LOADING)
+    const result = await apiRequest<AppointmentRecord[]>(API_PATHS.APPOINTMENTS, {
+      method: HTTP.GET,
+      requiresAuth: true,
+    })
+
+    if (result.error) {
+      setStatusMessage(result.error === ERRORS.MISSING_TOKEN ? STATUS_MISSING_TOKEN : STATUS_LOAD_ERROR)
+      return
+    }
+
+    if (result.data) {
+      setAppointments(mapAppointments(result.data))
+    }
+    setStatusMessage(null)
+  }
+
+  useEffect(() => {
+    loadAppointments()
+  }, [])
+
+  const handleCreateAppointment = async () => {
+    const patientId = window.prompt(PROMPT_PATIENT_ID)
+    if (!patientId) {
+      return
+    }
+    const date = window.prompt(PROMPT_DATE)
+    if (!date) {
+      return
+    }
+    const time = window.prompt(PROMPT_TIME)
+    if (!time) {
+      return
+    }
+    const type = window.prompt(PROMPT_TYPE, DEFAULT_APPOINTMENT_TYPE) ?? DEFAULT_APPOINTMENT_TYPE
+
+    const result = await apiRequest<AppointmentRecord>(API_PATHS.APPOINTMENTS, {
+      method: HTTP.POST,
+      requiresAuth: true,
+      body: {
+        patient_id: patientId,
+        date,
+        time,
+        type,
+      },
+    })
+
+    if (result.error) {
+      setStatusMessage(STATUS_ACTION_ERROR)
+      return
+    }
+
+    loadAppointments()
+  }
+
+  const handleConfirmAppointment = async (appointmentId: string) => {
+    const result = await apiRequest(API_PATHS.APPOINTMENT_CONFIRM(appointmentId), {
+      method: HTTP.POST,
+      requiresAuth: true,
+      body: {},
+    })
+
+    if (result.error) {
+      setStatusMessage(STATUS_ACTION_ERROR)
+      return
+    }
+
+    loadAppointments()
+  }
+
+  const handleUpdateAppointment = async (appointmentId: string) => {
+    const date = window.prompt(PROMPT_DATE)
+    const time = window.prompt(PROMPT_TIME)
+    const type = window.prompt(PROMPT_TYPE)
+
+    const result = await apiRequest(API_PATHS.APPOINTMENT_BY_ID(appointmentId), {
+      method: HTTP.PUT,
+      requiresAuth: true,
+      body: {
+        date: date || undefined,
+        time: time || undefined,
+        type: type || undefined,
+      },
+    })
+
+    if (result.error) {
+      setStatusMessage(STATUS_ACTION_ERROR)
+      return
+    }
+
+    loadAppointments()
+  }
+
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    const result = await apiRequest(API_PATHS.APPOINTMENT_BY_ID(appointmentId), {
+      method: HTTP.DELETE,
+      requiresAuth: true,
+    })
+
+    if (result.error) {
+      setStatusMessage(STATUS_ACTION_ERROR)
+      return
+    }
+
+    loadAppointments()
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -53,13 +208,15 @@ const AppointmentsPage = () => {
         </div>
         <button
           type="button"
-          onClick={() => notifyAction('Create appointment via POST /appointments')}
+          onClick={handleCreateAppointment}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
           New appointment
         </button>
       </div>
+
+      {statusMessage && <StatusBadge label={statusMessage} variant="info" />}
 
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-soft">
         <CalendarDays className="h-4 w-4 text-slate-400" />
@@ -111,14 +268,10 @@ const AppointmentsPage = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                      {appointment.status === 'Pending' && (
+                      {appointment.status === STATUS_LABEL_PENDING && (
                         <button
                           type="button"
-                          onClick={() =>
-                            notifyAction(
-                              `Confirm appointment via POST /appointments/${appointment.id}/confirm`,
-                            )
-                          }
+                          onClick={() => handleConfirmAppointment(appointment.id)}
                           className="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-3 py-1 text-emerald-600 transition hover:border-emerald-300"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -127,9 +280,7 @@ const AppointmentsPage = () => {
                       )}
                       <button
                         type="button"
-                        onClick={() =>
-                          notifyAction(`Update appointment via PUT /appointments/${appointment.id}`)
-                        }
+                        onClick={() => handleUpdateAppointment(appointment.id)}
                         className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-slate-600 transition hover:border-primary hover:text-primary"
                       >
                         <PencilLine className="h-3.5 w-3.5" />
@@ -137,11 +288,7 @@ const AppointmentsPage = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
-                          notifyAction(
-                            `Cancel appointment via DELETE /appointments/${appointment.id}`,
-                          )
-                        }
+                        onClick={() => handleDeleteAppointment(appointment.id)}
                         className="inline-flex items-center gap-1 rounded-full border border-rose-200 px-3 py-1 text-rose-500 transition hover:border-rose-300"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

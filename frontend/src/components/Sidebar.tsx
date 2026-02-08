@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   CalendarCheck,
   CalendarDays,
+  Code2,
   HeartPulse,
   LayoutDashboard,
   PhoneCall,
@@ -14,6 +15,7 @@ const navItems = [
   { label: 'My Patients', to: '/app/patients', icon: UsersRound },
   { label: 'Appointments', to: '/app/appointments', icon: CalendarDays },
   { label: 'Calls', to: '/app/calls', icon: PhoneCall },
+  { label: 'API Reference', to: '/app/api-reference', icon: Code2 },
   { label: 'Calendar', to: '/connect-calendar', icon: CalendarCheck },
   { label: 'Settings', to: '/app/settings', icon: Settings },
 ]

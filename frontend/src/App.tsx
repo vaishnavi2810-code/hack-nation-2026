@@ -4,10 +4,12 @@ import AppointmentsPage from './pages/AppointmentsPage'
 import CalendarConnectPage from './pages/CalendarConnectPage'
 import CallHistoryPage from './pages/CallHistoryPage'
 import DashboardPage from './pages/DashboardPage'
+import ApiReferencePage from './pages/ApiReferencePage'
 import SignupPage from './pages/SignupPage'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
+import OAuthCallbackPage from './pages/OAuthCallbackPage'
 import PatientsPage from './pages/PatientsPage'
 import SettingsPage from './pages/SettingsPage'
 
@@ -17,12 +19,14 @@ const App = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
       <Route path="/connect-calendar" element={<CalendarConnectPage />} />
       <Route path="/app" element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="calls" element={<CallHistoryPage />} />
+        <Route path="api-reference" element={<ApiReferencePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
