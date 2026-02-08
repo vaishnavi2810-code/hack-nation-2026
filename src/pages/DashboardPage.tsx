@@ -1,165 +1,139 @@
-import type { LucideIcon } from 'lucide-react'
-import {
-  AlertCircle,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Phone,
-  RefreshCw,
-  XCircle,
-} from 'lucide-react'
+import { CalendarDays, Clock, PhoneCall, Sparkles, UsersRound } from 'lucide-react'
 import StatCard from '../components/StatCard'
 import StatusBadge from '../components/StatusBadge'
 
-type StatItem = {
-  title: string
-  value: string
-  change?: string
-  icon: LucideIcon
-  accent?: 'primary' | 'success' | 'warning'
-}
-
-const stats: StatItem[] = [
-  {
-    title: "Today's Reminder Calls",
-    value: '12',
-    change: '↑ 8% from yesterday',
-    icon: Phone,
-    accent: 'primary',
-  },
-  {
-    title: 'Patients Confirmed',
-    value: '10 (83%)',
-    icon: CheckCircle,
-    accent: 'success',
-  },
-  {
-    title: 'Rescheduled',
-    value: '2',
-    icon: Calendar,
-    accent: 'primary',
-  },
-  {
-    title: 'Need Follow-up',
-    value: '1',
-    icon: AlertCircle,
-    accent: 'warning',
-  },
+const callQueue = [
+  { caller: 'Lydia Green', reason: 'Reschedule request', time: '9:10 AM', status: 'Escalated' },
+  { caller: 'Carlos Diaz', reason: 'New patient intake', time: '9:22 AM', status: 'In progress' },
+  { caller: 'Amanda Wu', reason: 'Prescription reminder', time: '9:45 AM', status: 'Completed' },
 ]
 
-type CallStatus = 'Scheduled' | 'Completed' | 'Failed' | 'Rescheduled'
-
-type StatusVariant = 'info' | 'success' | 'danger' | 'warning'
-
-type StatusMeta = {
-  label: string
-  icon: LucideIcon
-  variant: StatusVariant
-}
-
-type ReminderCall = {
-  time: string
-  patient: string
-  phone: string
-  status: CallStatus
-  action: string
-}
-
-const reminderCalls: ReminderCall[] = [
-  { time: '9:00 AM', patient: 'Mrs. Johnson, 78', phone: '555-0123', status: 'Scheduled', action: 'View' },
-  { time: '11:30 AM', patient: 'Mr. Chen, 82', phone: '555-0456', status: 'Completed', action: 'Details' },
-  { time: '2:00 PM', patient: 'Ms. Rodriguez, 71', phone: '555-0789', status: 'Scheduled', action: 'View' },
-  { time: '3:30 PM', patient: 'Mr. Lopez, 75', phone: '555-0912', status: 'Scheduled', action: 'View' },
-]
-
-const statusConfig: Record<CallStatus, StatusMeta> = {
-  Scheduled: { label: 'Scheduled', icon: Clock, variant: 'info' },
-  Completed: { label: 'Completed', icon: CheckCircle, variant: 'success' },
-  Failed: { label: 'Failed', icon: XCircle, variant: 'danger' },
-  Rescheduled: { label: 'Rescheduled', icon: RefreshCw, variant: 'warning' },
-}
-
-const recentActivity = [
-  { detail: 'Mrs. Johnson confirmed appointment', time: '5 min ago' },
-  { detail: 'Mr. Chen rescheduled to Friday', time: '23 min ago' },
-  { detail: 'New patient added: Ms. Rodriguez', time: '1 hour ago' },
+const upcomingAppointments = [
+  { patient: 'Hannah Lee', time: '11:30 AM', type: 'Annual physical', status: 'Confirmed' },
+  { patient: 'Jordan Patel', time: '1:00 PM', type: 'Follow-up visit', status: 'Pending' },
+  { patient: 'Maya Rivera', time: '2:15 PM', type: 'Telehealth check-in', status: 'Confirmed' },
 ]
 
 const DashboardPage = () => {
   return (
-    <div className="space-y-6">
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            change={stat.change}
-            icon={stat.icon}
-            accent={stat.accent}
-          />
-        ))}
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-900">Clinic dashboard</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Monitor today&apos;s call coverage, appointments, and patient touchpoints.
+        </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-900">Reminder Calls Scheduled Today</h2>
-          </div>
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Calls answered"
+          value="128"
+          change="+12% from yesterday"
+          icon={PhoneCall}
+          accent="primary"
+        />
+        <StatCard
+          title="Upcoming appointments"
+          value="24"
+          change="6 need confirmations"
+          icon={CalendarDays}
+          accent="success"
+        />
+        <StatCard
+          title="Patient follow-ups"
+          value="9"
+          change="2 escalations pending"
+          icon={UsersRound}
+          accent="warning"
+        />
+        <StatCard
+          title="Average call time"
+          value="2m 14s"
+          change="AI coverage running smoothly"
+          icon={Clock}
+          accent="primary"
+        />
+      </div>
 
-          <div className="mt-5 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Time</th>
-                  <th className="px-4 py-3">Patient</th>
-                  <th className="px-4 py-3">Phone</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {reminderCalls.map((call) => {
-                  const statusMeta = statusConfig[call.status]
-                  return (
-                    <tr key={`${call.time}-${call.patient}`} className="text-slate-600">
-                      <td className="px-4 py-4 text-sm font-semibold text-slate-900">{call.time}</td>
-                      <td className="px-4 py-4">{call.patient}</td>
-                      <td className="px-4 py-4">{call.phone}</td>
-                      <td className="px-4 py-4">
-                        <StatusBadge
-                          label={statusMeta.label}
-                          variant={statusMeta.variant}
-                          icon={statusMeta.icon}
-                        />
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <button className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-primary hover:text-primary">
-                          {call.action}
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Recent activity</h2>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Live call queue</h2>
+              <p className="text-sm text-slate-600">AI triage for current inbound calls.</p>
+            </div>
+            <StatusBadge label="3 active calls" variant="info" />
           </div>
-          <ul className="relative mt-5 space-y-6 border-l border-slate-200 pl-5">
-            {recentActivity.map((activity) => (
-              <li key={activity.detail} className="relative">
-                <span className="absolute -left-[9px] top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-primary"></span>
-                <p className="text-sm font-semibold text-slate-900">{activity.detail}</p>
-                <p className="text-xs text-slate-500">{activity.time}</p>
-              </li>
+          <div className="mt-6 space-y-4">
+            {callQueue.map((call) => (
+              <div
+                key={call.caller}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{call.caller}</p>
+                  <p className="text-xs text-slate-500">{call.reason}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-500">{call.time}</span>
+                  <StatusBadge
+                    label={call.status}
+                    variant={
+                      call.status === 'Completed'
+                        ? 'success'
+                        : call.status === 'Escalated'
+                          ? 'warning'
+                          : 'info'
+                    }
+                  />
+                </div>
+              </div>
             ))}
-          </ul>
-        </aside>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Upcoming appointments</h2>
+              <StatusBadge label="Today" variant="neutral" />
+            </div>
+            <div className="mt-5 space-y-4">
+              {upcomingAppointments.map((appointment) => (
+                <div key={appointment.patient} className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{appointment.patient}</p>
+                    <p className="text-xs text-slate-500">{appointment.type}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-900">{appointment.time}</p>
+                    <StatusBadge
+                      label={appointment.status}
+                      variant={appointment.status === 'Confirmed' ? 'success' : 'warning'}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">AI coverage insights</h2>
+                <p className="text-xs text-slate-500">Updated 5 minutes ago</p>
+              </div>
+            </div>
+            <ul className="mt-4 space-y-3 text-sm text-slate-600">
+              <li>• 92% of calls resolved without staff intervention.</li>
+              <li>• Highest call volume predicted between 1 PM - 3 PM.</li>
+              <li>• Two patients requested same-day telehealth slots.</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   )
